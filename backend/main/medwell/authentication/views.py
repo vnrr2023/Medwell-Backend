@@ -14,7 +14,7 @@ from .models import *
 import random
 from django.shortcuts import get_object_or_404
 import datetime
-from .security import create_token,decrypt_token,create_html_template
+from .security import decrypt_token,create_html_template,create_template_for_otp
 from django.core.mail import send_mail
 from rest_framework.response import Response
 from urllib.parse import unquote
@@ -63,7 +63,6 @@ def login_with_google( request):
         return Response({"error": "Invalid token","status":False}, status=status.HTTP_400_BAD_REQUEST)
 
 
-
 @api_view(['POST'])
 @csrf_exempt
 def login_user(request):
@@ -92,47 +91,47 @@ def register_user(request):
     password2=request.POST['password2']
 
     if password1==password2:
-        # try:
-        new_user=CustomUser.objects.create_user(
-            email=email,
-            password=password1,
-            profile_created=False
-        )
-        new_user.save()
-        refresh=RefreshToken.for_user(new_user)
-        access=refresh.access_token
-        payload={
-            'email':email,
-            'exp': datetime.datetime.utcnow() + datetime.timedelta(days=2),
-            'user_id':new_user.id
+        try:
+            new_user=CustomUser.objects.create_user(
+                email=email,
+                password=password1,
+                profile_created=False
+            )
+            new_user.save()
+            refresh=RefreshToken.for_user(new_user)
+            access=refresh.access_token
+            payload={
+                'email':email,
+                'exp': datetime.datetime.utcnow() + datetime.timedelta(days=2),
+                'user_id':new_user.id
 
-        }
-        html=create_html_template(payload)
-        send_mail(
-            'Email Verification Medwell',
-                ' ', 
-            settings.EMAIL_HOST_USER,
-            [email], 
-            html_message=html
+            }
+            html=create_html_template(payload)
+            send_mail(
+                'Email Verification Medwell',
+                    ' ', 
+                settings.EMAIL_HOST_USER,
+                [email], 
+                html_message=html
+                )
+
+            return JsonResponse(
+                {
+                    'mssg':"Profile created Successfully...",
+                    'status':True,
+                    'access_token':str(access)
+                },
+                status=201
             )
 
-        return JsonResponse(
-            {
-                'mssg':"Profile created Successfully...",
-                'status':True,
-                'access_token':str(access)
-            },
-            status=201
-        )
-
-        # except:
-        #     return JsonResponse(
-        #         {
-        #             'mssg':f"Try Logging in.'{email}' is already exists...",
-        #             'status':False
-        #         },
-        #         status=400
-        #     )
+        except:
+            return JsonResponse(
+                {
+                    'mssg':f"Try Logging in.'{email}' is already exists...",
+                    'status':False
+                },
+                status=400
+            )
     else:
         return JsonResponse(
             data={
@@ -155,7 +154,6 @@ def change_password(request):
             user.set_password(new)
             user.save()
             access=str(RefreshToken.for_user(user).access)
-            print(f"\n\n{access}\n\n")
             return JsonResponse({
                 'status':True,
                 'message':"Password Changed Successfully....",
@@ -180,18 +178,24 @@ def forgot_password(request):
     email=request.POST['email_of_user']
     user=get_object_or_404(CustomUser,email=email)
     otp=str(random.randint(100000,999999))
-    print(otp)
     payload = {
         'user_id': user.id,
         'email': user.email,
         'otp': otp,
         'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=5)
     }
-    token=create_token(payload)
-
+    data=create_template_for_otp(payload)
+    send_mail(
+            'OTP for logging in to  Medwell',
+                ' ', 
+            settings.EMAIL_HOST_USER,
+            [email], 
+            html_message=data['html']
+            )
+    
     return JsonResponse({
         'otp':otp,
-        'token':token
+        'token':data['token']
     },safe=False,status=200)
 
 
