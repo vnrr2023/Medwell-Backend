@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Processing Status</title>
+    <style>
+        .container-success {
+            background-color: #d4edda; /* Light green */
+            color: #155724; /* Dark green text */
+        }
+
+        .container-failed {
+            background-color: #f8d7da; /* Light red */
+            color: #721c24; /* Dark red text */
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 30px;
+            font-family: Arial, sans-serif;
+            border-radius: 8px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .content {
+            font-size: 18px;
+            line-height: 1.6;
+            text-align: center;
+        }
+
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 12px;
+            color: #888;
+        }
+
+        .upload-again {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container {{ container_class }}">
+        <div class="header">
+            <h1>Medwell Report Processing Status</h1>
+        </div>
+
+        <div class="content">
+            <p>Hello {{ user_name }},</p>
+
+            <p>Your report <strong>{{ pdf_name }}</strong> processing status is:</p>
+
+            <h2>{{ status_message }}</h2>
+
+            <p>Thank you for using Medwell's services. You can check your report details in your dashboard.</p>
+
+            {% if status_message == "Failed" %}
+            <p class="upload-again">
+                Unfortunately, your report processing has failed. Please upload the report again.
+            </p>
+            {% endif %}
+        </div>
+
+        <div class="footer">
+            <p> Medwell. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -20,3 +20,40 @@ class PatientProfile(models.Model):
     def __str__(self) -> str:
         return self.user.email
     
+class Report(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user=models.ForeignKey(CustomUser,on_delete=models.CASCADE)
+    report_file=models.FileField(upload_to="user_reports/",null=False,blank=False)
+    report_type=models.CharField(max_length=20,null=True,blank=True)
+    submitted_at=models.DateField(auto_now_add=True)
+    doctor_name=models.CharField(max_length=250,null=True,blank=True)
+    date_of_report=models.CharField(max_length=50,null=True,blank=True)
+    date_of_collection=models.CharField(max_length=50,null=True,blank=True)
+    summary=models.TextField(null=True,blank=True)
+
+    def __str__(self) -> str:
+        return self.user.email
+
+
+class ReportDetail(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    report=models.OneToOneField(Report,on_delete=models.CASCADE)
+    hemoglobin=models.CharField(max_length=50,null=True,blank=True)
+    rbc_count=models.CharField(max_length=50,null=True,blank=True)
+    wbc_count=models.CharField(max_length=50,null=True,blank=True)
+    platelet_count=models.CharField(max_length=50,null=True,blank=True)
+    pcv=models.CharField(max_length=50,null=True,blank=True)
+    bilirubin=models.CharField(max_length=50,null=True,blank=True)
+    proteins=models.CharField(max_length=50,null=True,blank=True)
+    calcium=models.CharField(max_length=50,null=True,blank=True)
+    blood_urea=models.CharField(max_length=50,null=True,blank=True)
+    sr_cholestrol=models.CharField(max_length=50,null=True,blank=True)
+    report_data=models.JSONField(null=True,blank=True)
+
+
+    def __str__(self) -> str:
+        return self.report.user.email
+    
+    
+
+    

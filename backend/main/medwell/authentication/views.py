@@ -26,10 +26,8 @@ def login_with_google( request):
     if not token:
         return Response({"error": "Token not provided","status":False}, status=status.HTTP_400_BAD_REQUEST)
     try:
-        # Verify the token with Google's server
         id_info = id_token.verify_oauth2_token(token, google_requests.Request(), settings.GOOGLE_OAUTH2_CLIENT_ID)
 
-        # Extract useful information from the token
         email = id_info['email']
         first_name = id_info.get('given_name', '')
         last_name = id_info.get('family_name', '')
@@ -69,6 +67,7 @@ def login_user(request):
     email=request.POST['email']
     password=request.POST['password']
     user=authenticate(request,email=email,password=password)
+    print(user)
     if user is None:
         return JsonResponse({'mssg':'Incorrct Credentials','status':0},status=status.HTTP_400_BAD_REQUEST)
     else:
@@ -89,13 +88,15 @@ def register_user(request):
     email=request.POST['email']
     password1=request.POST['password1']
     password2=request.POST['password2']
+    name=request.POST["full_name"]
 
     if password1==password2:
         try:
             new_user=CustomUser.objects.create_user(
                 email=email,
                 password=password1,
-                profile_created=False
+                profile_created=False,
+                first_name=name
             )
             new_user.save()
             refresh=RefreshToken.for_user(new_user)
