@@ -8,7 +8,10 @@ class PatientProfile(models.Model):
     name=models.CharField(max_length=200,blank=False,null=False)
     age = models.CharField(max_length=5,null=True,blank=True)
     user=models.OneToOneField(CustomUser,on_delete=models.CASCADE)
+    phone_number = models.CharField(max_length=13, blank=True, null=True)
     blood_group=models.CharField(max_length=10,blank=True,null=True)
+    height=models.CharField(max_length=10,blank=True,null=True)
+    weight=models.CharField(max_length=10,blank=True,null=True)
     city = models.CharField(max_length=100,null=True,blank=True)  
     country = models.CharField(max_length=100,null=True,blank=True) 
     state = models.CharField(max_length=100,null=True,blank=True) 
@@ -61,4 +64,11 @@ class ReportDetail(models.Model):
     
     
 
-    
+class Expense(models.Model):
+    user=models.ForeignKey(CustomUser,on_delete=models.DO_NOTHING)
+    expense_type=models.CharField(max_length=50,blank=True,null=True)
+    amount=models.CharField(max_length=100,blank=True,null=True)
+    date=models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return self.user.email

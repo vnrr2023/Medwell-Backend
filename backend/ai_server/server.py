@@ -3,6 +3,8 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from celery_config import process_pdf,get_task_status
 from celery.result import AsyncResult
+from ai import get_model_response
+from prompt_templates import EXPENSE_PROMPT
 app=FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -25,7 +27,6 @@ set task id to completed
 '''
 
 
-
 #  API's
 @app.get("/test")
 async def test():
@@ -41,10 +42,25 @@ async def process_report(request:Request):
     task=process_pdf.delay(data['file'],data['report_id'],data['user_id'])
     return JSONResponse({"task_id":task.id},status_code=200)
     
-    
+@app.post("/process_expense_query/")
+async def process_expense_query(request:Request):
+    data=await request.json()
+    query=data["data"]
+    for _ in range(5):
+        try:
+            resp=eval(get_model_response(EXPENSE_PROMPT,query))
+            break
+        except:
+            pass
+    if resp["status"]=="true":
+        return JSONResponse({"status":True,"amount":resp["amount"],"expenditure":resp["expenditure"]})
+    return JSONResponse({"status":False,"mssg":"Enter relevant expense"})
 
+    
 
 @app.get("/get_task_status/")
 async def get_status(request:Request):
     data=request.query_params.get("task_id")
     return JSONResponse(get_task_status(data))
+
+

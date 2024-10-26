@@ -9,9 +9,18 @@ db_host = 'localhost'
 db_port = '5432'
 db_name = 'medwell_db'
 
-# Create a connection string and engine
 connection_string = f'postgresql+psycopg2://{db_username}:{db_password}@{db_host}:{db_port}/{db_name}'
 engine = create_engine(connection_string)
+
+def connect_db():
+    connection = psycopg2.connect(
+        host='localhost',
+        port='5432',
+        dbname='medwell_db' ,
+        user='myuser' ,
+        password='root' 
+    )
+    return connection,connection.cursor()
 
 queries={
     'health_check':'''
@@ -39,7 +48,9 @@ queries={
     WHERE 
         user_id = {user_id};
     ''',
-    'report_count_query': '''select count(*) as num_reports from patient_report where user_id={user_id}; '''
+    'report_count_query': '''select count(*) as num_reports from patient_report where user_id={user_id}; ''',
+    "overall_expense":'''SELECT SUM(CAST(amount AS DECIMAL)) as total_expense from patient_expense where user_id={user_id} ;''',
+    "recent_expenses":'''select expense_type,amount,date(date) from patient_expense where user_id={user_id} order by date desc limit 10;'''
 }
 
 
@@ -55,3 +66,13 @@ def provide_health_check_data(user_id):
     return {"status":True,"data":data,"avg_data":avg_data}
 
 
+def provide_expense_data(user_id):
+    conn,cursor=connect_db()
+    cursor.execute(queries["overall_expense"].format(user_id=user_id))
+    overall_expense=str(cursor.fetchone()[0])
+    df=pd.read_sql_query(queries["recent_expenses"].format(user_id=user_id),engine)
+    df['date'] = pd.to_datetime(df['date'])
+    df['date'] = df['date'].dt.strftime('%Y-%m-%d')
+    data=df.to_dict("records")
+    return {"overall_expense":overall_expense,"expenses":data}
+    

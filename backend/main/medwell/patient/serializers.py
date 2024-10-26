@@ -35,6 +35,7 @@ class PatientSerializer(serializers.ModelSerializer):
             'id',
             'name',
             'age',
+            'phone_number',
             'user_info',
             'blood_group',
             'city',
