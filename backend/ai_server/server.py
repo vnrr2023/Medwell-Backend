@@ -1,9 +1,8 @@
-from fastapi import Request,FastAPI,BackgroundTasks
+from fastapi import Request,FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-import uuid
-from tasks import process_pdf
-
+from celery_config import process_pdf,get_task_status
+from celery.result import AsyncResult
 app=FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -14,8 +13,6 @@ app.add_middleware(
 )
 
 
-######### For Background Processing #####
-tasks = {} 
 
 # logic for bg task
 '''
@@ -39,22 +36,15 @@ async def test():
 
 
 @app.post("/process_report/")
-async def process_report(request:Request, background_tasks: BackgroundTasks):
+async def process_report(request:Request):
     data=await request.json()
-    task_id = str(uuid.uuid4())  # Generate a unique task ID
-    tasks[task_id] = "RUNNING"  # Store task status
-    print("came to background tasks\n\n")
-    background_tasks.add_task(process_pdf,tasks,task_id,data['file'],data['report_id'],data['user_id'])
-    print("sending the task id ====")
-    return JSONResponse({"task_id":task_id},status_code=200)
+    task=process_pdf.delay(data['file'],data['report_id'],data['user_id'])
+    return JSONResponse({"task_id":task.id},status_code=200)
     
     
 
-@app.get("/check_task_status/")
-async def check(task_id:str):
-    status=tasks.get(task_id,"DIED")
-    if status=="SUCCESS" or status=="FAILED":
-        del tasks[task_id]
-    return JSONResponse(
-        {'status':status},status_code=200
-    )
+
+@app.get("/get_task_status/")
+async def get_status(request:Request):
+    data=request.query_params.get("task_id")
+    return JSONResponse(get_task_status(data))

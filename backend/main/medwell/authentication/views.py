@@ -7,17 +7,21 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view,permission_classes
 from django.http import JsonResponse, HttpResponseRedirect
 from rest_framework import status
-import json
+import requests
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import *
 import random
 from django.shortcuts import get_object_or_404
 import datetime
-from .security import decrypt_token,create_html_template,create_template_for_otp
+from .security import decrypt_token,give_token_for_otp,give_enc_token
 from django.core.mail import send_mail
 from rest_framework.response import Response
 from urllib.parse import unquote
+from django.template.loader import render_to_string
+from patient.models import PatientProfile
+from django.core.files.base import ContentFile
+from django.db.transaction import atomic
 
 @api_view(["POST"])
 @csrf_exempt
@@ -39,13 +43,27 @@ def login_with_google( request):
             'first_name': first_name,
             'last_name': last_name,
             'email_verified':True,
-            'profile_created':False,
-            'profile_pic_url':profile_pic_url
+            'profile_created':True,
         })
 
         if created:
             user.set_unusable_password()
             user.save()
+            resp=requests.get(profile_pic_url)
+            patient=PatientProfile()
+            patient.name=first_name+last_name
+            if resp.status_code==200:
+                image_name = profile_pic_url.split("/")[-1]
+                patient.profile_pic.save(image_name, ContentFile(resp.content))
+            patient.save()
+            html_content = render_to_string('welcome_google.html', {'email': email, 'profile_pic_url': profile_pic_url})
+            send_mail(
+                'Email Verification Medwell',
+                    ' ', 
+                settings.EMAIL_HOST_USER,
+                [email], 
+                html_message=html_content
+                )
 
         refresh = RefreshToken.for_user(user)
 
@@ -81,7 +99,7 @@ def login_user(request):
             status=200
         )
 
-
+@atomic
 @api_view(['POST'])
 @csrf_exempt
 def register_user(request):
@@ -99,6 +117,9 @@ def register_user(request):
                 first_name=name
             )
             new_user.save()
+            patient=PatientProfile.objects.create(name=name,user=new_user)
+            patient.save()
+
             refresh=RefreshToken.for_user(new_user)
             access=refresh.access_token
             payload={
@@ -107,13 +128,15 @@ def register_user(request):
                 'user_id':new_user.id
 
             }
-            html=create_html_template(payload)
+            token=give_enc_token(payload)
+
+            html_content = render_to_string('welcome_register.html', {'token': token})
             send_mail(
                 'Email Verification Medwell',
                     ' ', 
                 settings.EMAIL_HOST_USER,
                 [email], 
-                html_message=html
+                html_message=html_content
                 )
 
             return JsonResponse(
@@ -185,18 +208,19 @@ def forgot_password(request):
         'otp': otp,
         'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=5)
     }
-    data=create_template_for_otp(payload)
+    token=give_token_for_otp(payload)
+    html_message = render_to_string('otp_email_template.html', {'email': email, 'otp_number': otp})
     send_mail(
             'OTP for logging in to  Medwell',
                 ' ', 
             settings.EMAIL_HOST_USER,
             [email], 
-            html_message=data['html']
+            html_message=html_message
             )
     
     return JsonResponse({
         'otp':otp,
-        'token':data['token']
+        'token':token
     },safe=False,status=200)
 
 
@@ -262,13 +286,14 @@ def create_new_verification_message(request):
         'user_id':user.id
 
     }
-    html=create_html_template(payload)
+    token=give_enc_token(payload)
+    html_content = render_to_string('welcome_register.html', {'token': token})
     send_mail(
-        'Email Verification  ettara',
+        'Email Verification Medwell',
             ' ', 
         settings.EMAIL_HOST_USER,
         [user.email], 
-        html_message=html
+        html_message=html_content
         )
     return JsonResponse({'status':True,'mssg':f'Verification Link Sent to {user.email}'})
 

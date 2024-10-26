@@ -1,6 +1,7 @@
 from django.db import models
 from authentication.models import CustomUser
 import uuid
+from django.contrib.postgres.fields import ArrayField
 
 class PatientProfile(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -12,9 +13,12 @@ class PatientProfile(models.Model):
     country = models.CharField(max_length=100,null=True,blank=True) 
     state = models.CharField(max_length=100,null=True,blank=True) 
     pin = models.CharField(max_length=10,null=True,blank=True) 
-    profile_pic=models.FileField(upload_to="profilepics/",null=True,blank=True)
+    profile_pic=models.FileField(upload_to="profilepics/",default="profile_pics/default_pp.jpg")
     profile_qr=models.FileField(upload_to="user_qrs/",null=True,blank=True)
     adhaar_card=models.FileField(upload_to="addhaar_cards/",null=True,blank=True)
+    allergies = ArrayField(models.CharField(max_length=200),blank=True, default=list)
+    chronic_conditions = ArrayField(models.CharField(max_length=200),blank=True, default=list)
+    family_history = ArrayField(models.CharField(max_length=200),blank=True, default=list)
 
     
     def __str__(self) -> str:
@@ -30,6 +34,7 @@ class Report(models.Model):
     date_of_report=models.CharField(max_length=50,null=True,blank=True)
     date_of_collection=models.CharField(max_length=50,null=True,blank=True)
     summary=models.TextField(null=True,blank=True)
+    processed=models.BooleanField(default=False)
 
     def __str__(self) -> str:
         return self.user.email

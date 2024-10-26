@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Medwell</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f9fafb;
+            margin: 0;
+            padding: 0;
+        }
+
+        .email-container {
+            max-width: 600px;
+            margin: 50px auto;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .email-header {
+            background-color: #007bff;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .email-header img {
+            width: 150px;
+            margin-bottom: 10px;
+        }
+
+        .email-header h1 {
+            color: #ffffff;
+            font-size: 28px;
+            margin: 0;
+            font-weight: bold;
+        }
+
+        .email-body {
+            padding: 30px 20px;
+        }
+
+        .email-body h1 {
+            font-size: 24px;
+            color: #333333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .email-body p {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #555555;
+            margin: 0;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .profile-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .profile-container img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 10px;
+        }
+
+        .profile-container p {
+            font-size: 18px;
+            color: #333333;
+        }
+
+        .email-footer {
+            background-color: #f9fafb;
+            text-align: center;
+            padding: 20px;
+            color: #999999;
+            font-size: 14px;
+        }
+
+        .email-footer p {
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        .email-footer a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .email-footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media screen and (max-width: 600px) {
+            .email-container {
+                width: 100%;
+                border-radius: 0;
+            }
+
+            .email-header h1,
+            .email-body h1,
+            .email-body p {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="email-container">
+        <!-- Header Section with Logo -->
+        <div class="email-header">
+            <img src="https://example.com/logo.png" alt="Medwell Logo"> <!-- Replace with your logo URL -->
+            <h1>Welcome to Medwell</h1>
+        </div>
+
+        <!-- Body Section -->
+        <div class="email-body">
+            <h1>Welcome, {{ email }}!</h1>
+            <p>We're thrilled to have you as a part of our community. Here's your profile information:</p>
+
+            <div class="profile-container">
+                <img src="{{ profile_pic_url }}" alt="User Profile Picture"> <!-- Replace with actual profile picture URL -->
+                <p>{{ email }}</p> <!-- Display the user's email -->
+            </div>
+
+            <p>If you have any questions or need assistance, feel free to <a href="#">contact support</a>.</p>
+            <p>We look forward to providing you with the best service.<br>Best regards,<br>Medwell Team</p>
+        </div>
+
+        <!-- Footer Section -->
+        <div class="email-footer">
+            <p>&copy; 2024 Medwell. All rights reserved.</p>
+            <p>This email was sent to {{ email }} because you joined Medwell. If you did not register, <a href="#">contact support</a>.</p>
+        </div>
+    </div>
+</body>
+
+</html>

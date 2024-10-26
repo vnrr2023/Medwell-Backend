@@ -37,7 +37,6 @@ class CustomUser(AbstractUser):
     phone_number = models.CharField(_('phone number'), max_length=12, blank=True, null=True)
     email_verified = models.BooleanField(_('email verified'), default=False)
     profile_created = models.BooleanField(_('profile created'), default=True)
-    profile_pic_url=models.CharField(max_length=200,null=True,blank=True)
     USERNAME_FIELD = 'email'  # Use email to log in
     REQUIRED_FIELDS = []  # No required fields except password
 

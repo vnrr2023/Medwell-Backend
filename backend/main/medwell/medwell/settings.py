@@ -40,6 +40,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
 ROOT_URLCONF = 'medwell.urls'
@@ -62,7 +63,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'medwell.wsgi.application'
 
-
+X_FRAME_OPTIONS = 'ALLOWALL'  # This allows framing by your own site only
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
