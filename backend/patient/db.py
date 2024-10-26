@@ -50,7 +50,54 @@ queries={
     ''',
     'report_count_query': '''select count(*) as num_reports from patient_report where user_id={user_id}; ''',
     "overall_expense":'''SELECT SUM(CAST(amount AS DECIMAL)) as total_expense from patient_expense where user_id={user_id} ;''',
-    "recent_expenses":'''select expense_type,amount,date(date) from patient_expense where user_id={user_id} order by date desc limit 10;'''
+    "recent_expenses":'''select expense_type,amount,date(date) from patient_expense where user_id={user_id} order by date desc limit 10;''',
+    "expense_per_type":'''
+    SELECT expense_type,SUM(CAST(amount AS DECIMAL)) as total
+    from patient_expense
+    where user_id={user_id}
+    group by expense_type
+    ;
+    ''',
+    "expense_trend":'''
+    SELECT CAST(amount AS DECIMAL) as expenses
+    from patient_expense
+    where user_id={user_id}
+    ;
+    ''',
+    "expenses_per_month":'''
+    SELECT to_char(date, 'Month') AS month_name,sum(CAST(amount AS DECIMAL)) as expenses,date_part('month', date) AS month
+    from patient_expense
+    where user_id={user_id}
+    group by to_char(date, 'Month'),date_part('month', date)
+    order by date_part('month', date)
+    ;
+    ''',
+    "expenses_per_year":'''
+    SELECT sum(CAST(amount AS DECIMAL)) as expenses,date_part('year', date) AS year
+    from patient_expense
+    where user_id={user_id}
+    group by date_part('year', date)
+    order by date_part('year', date)
+    ;
+    ''',
+    "expense_per_month_per_type":'''
+    SELECT date_part('month', date) AS month,expense_type,sum(CAST(amount AS DECIMAL)) as expenses
+    from patient_expense
+    where user_id={user_id}
+    group by date_part('month', date),expense_type
+    order by date_part('month', date)
+    ;    
+    ''',
+    "expenses_per_year_per_type":'''
+    SELECT date_part('year', date) AS year,expense_type,sum(CAST(amount AS DECIMAL)) as expenses
+    from patient_expense
+    where user_id={user_id}
+    group by date_part('year', date),expense_type
+    order by date_part('year', date)
+    ;
+    '''
+
+
 }
 
 
@@ -76,3 +123,41 @@ def provide_expense_data(user_id):
     data=df.to_dict("records")
     return {"overall_expense":overall_expense,"expenses":data}
     
+
+def provide_expense_dashboard(user_id):
+    df=pd.read_sql_query(queries["expense_per_type"].format(user_id=user_id),engine)
+    expenses_per_type=df.to_dict("list")
+    df=pd.read_sql_query(queries["expense_trend"].format(user_id=user_id),engine)
+    expense_trend=df.to_dict("list")
+    df=pd.read_sql_query(queries["expenses_per_month"].format(user_id=user_id),engine)[["month_name","expenses"]]
+    expenses_per_month=df.to_dict("list")
+    df=pd.read_sql_query(queries["expenses_per_year"].format(user_id=user_id),engine)[["year","expenses"]]
+    expenses_per_year=df.to_dict("list")
+    df=pd.read_sql_query(queries["expense_per_month_per_type"].format(user_id=user_id),engine)
+    grouped_df = df.groupby(by="month")
+    expenses_per_month_per_type=[]
+    for month,df in grouped_df:
+        month_data = {
+            "month": month,
+            "data": df[["expense_type","expenses"]].to_dict("list")
+        }
+        expenses_per_month_per_type.append(month_data)
+    df=pd.read_sql_query(queries["expenses_per_year_per_type"].format(user_id=user_id),engine)
+    grouped_df = df.groupby(by="year")
+    expenses_per_year_per_type=[]
+    for year,df in grouped_df:
+        year_data = {
+            "month": year,
+            "data": df[["expense_type","expenses"]].to_dict("list")
+        }
+        expenses_per_year_per_type.append(year_data)
+    
+    results = {
+    "expenses_per_type": expenses_per_type,
+    "expense_trend": expense_trend,
+    "expenses_per_month": expenses_per_month,
+    "expenses_per_year": expenses_per_year,
+    "expenses_per_month_per_type": expenses_per_month_per_type,
+    "expenses_per_year_per_type": expenses_per_year_per_type,
+    }
+    return results

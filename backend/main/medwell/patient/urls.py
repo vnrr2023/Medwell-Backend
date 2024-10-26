@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import send_status_of_task_to_mail,save_patient_info,health_check,get_patient_info,update_profile_pic
 from .reports import send_report,get_report_task_status,get_reports
-from .expenses import add_expense,show_expenses
+from .expenses import add_expense,show_expenses,expenses_dashboard
 
 urlpatterns = [
     path("send_report/",send_report,name="send report"),
@@ -14,4 +14,5 @@ urlpatterns = [
     path("update_profile_pic/",update_profile_pic,name="update_info"),
     path("add_expense/",add_expense,name="add_expense"),
     path("show_expenses/",show_expenses,name="show_expenses"),
+    path("expenses_dashboard/",expenses_dashboard,name="expenses_dashboard"),
 ]

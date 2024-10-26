@@ -40,4 +40,15 @@ def show_expenses(request):
     return JsonResponse(data={"mssg":"Server down.."},status=503)
 
 
+@api_view(["POST"])
+@csrf_exempt
+@permission_classes([IsAuthenticated])
+def expenses_dashboard(request):
+    user=request.user
+    resp=httpx.post(PATIENT_SERVER_URL+"expenses_dashboard/",json={"user_id":str(user.id)})
+    if resp.status_code==200:
+        return JsonResponse(data=resp.json(),safe=False,status=200)
+    return JsonResponse(data={"mssg":"Server down.."},status=503)
+
+
     
