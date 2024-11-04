@@ -17,11 +17,13 @@ class PatientProfile(models.Model):
     state = models.CharField(max_length=100,null=True,blank=True) 
     pin = models.CharField(max_length=10,null=True,blank=True) 
     profile_pic=models.FileField(upload_to="profilepics/",default="profile_pics/default_pp.jpg")
-    profile_qr=models.FileField(upload_to="user_qrs/",null=True,blank=True)
+    profile_qr=models.CharField(max_length=500,null=True,blank=True)
     adhaar_card=models.FileField(upload_to="addhaar_cards/",null=True,blank=True)
     allergies = ArrayField(models.CharField(max_length=200),blank=True, default=list)
     chronic_conditions = ArrayField(models.CharField(max_length=200),blank=True, default=list)
     family_history = ArrayField(models.CharField(max_length=200),blank=True, default=list)
+    health_summary=models.TextField(default=" ")
+    diet_plan=models.TextField(default=" ")
 
     
     def __str__(self) -> str:

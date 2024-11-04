@@ -1,6 +1,6 @@
 import psycopg2
 import pandas as pd
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine,text as to_sql_text
 
 
 db_username = 'myuser'
@@ -11,6 +11,7 @@ db_name = 'medwell_db'
 
 connection_string = f'postgresql+psycopg2://{db_username}:{db_password}@{db_host}:{db_port}/{db_name}'
 engine = create_engine(connection_string)
+conn=engine.connect()
 
 def connect_db():
     connection = psycopg2.connect(
@@ -50,7 +51,7 @@ queries={
     ''',
     'report_count_query': '''select count(*) as num_reports from patient_report where user_id={user_id}; ''',
     "overall_expense":'''SELECT SUM(CAST(amount AS DECIMAL)) as total_expense from patient_expense where user_id={user_id} ;''',
-    "recent_expenses":'''select expense_type,amount,date(date) from patient_expense where user_id={user_id} order by date desc limit 10;''',
+    "recent_expenses":'''select id,expense_type,amount,date(date) from patient_expense where user_id={user_id} order by date desc limit 10;''',
     "expense_per_type":'''
     SELECT expense_type,SUM(CAST(amount AS DECIMAL)) as total
     from patient_expense
@@ -101,39 +102,65 @@ queries={
 }
 
 
+dashboard_queries={
+    "overall_expense":'''SELECT SUM(CAST(amount AS DECIMAL)) as total_expense from patient_expense where user_id={user_id} ;''',   
+    "avg_health_data":'''
+    select round(avg(cast(hemoglobin as decimal)),2) as avg_hemoglobin,
+    round(avg(cast(rbc_count as decimal)),2) as avg_rbc_count,
+    round(avg(cast(wbc_count as decimal)),2) as avg_wbc_count
+    from patient_report p join patient_reportdetail r on r.report_id=p.id
+    where p.user_id={user_id};
+    ''',
+    "reports":'''
+    select id::TEXT,report_file,doctor_name,submitted_at,report_type,processed,to_date(date_of_report,'FMDD/FMMM/YY') as report_date
+    from patient_report
+    where user_id={user_id}
+    order by report_date;
+    ''',
+    "graph_data":'''
+    select submitted_at,hemoglobin,rbc_count,wbc_count
+    from patient_report pr join patient_reportdetail rd
+    on pr.id=rd.report_id
+    where user_id={user_id};
+    '''
+}
+
+# provides data for health check dashboard
 def provide_health_check_data(user_id):
-    count=pd.read_sql_query(queries['report_count_query'].format(user_id=user_id),engine)['num_reports'][0]
+    count=pd.read_sql_query(sql=to_sql_text(queries['report_count_query'].format(user_id=user_id)),con=conn)['num_reports'][0]
     if count<=3:
         return {"status":False,"count":count}
-    df=pd.read_sql_query(queries['health_check'].format(user_id=user_id),engine)
+    df=pd.read_sql_query(sql=to_sql_text(queries['health_check'].format(user_id=user_id)),con=conn)
     df.replace("-1",None,inplace=True)
     df['submitted_at'] = df['submitted_at'].astype(str)
     data=df.to_dict("list")
-    avg_data=pd.read_sql_query(queries['average_query'].format(user_id=user_id),engine).to_dict("records")[0]
+    avg_data=pd.read_sql_query(sql=to_sql_text(queries['average_query'].format(user_id=user_id)),con=conn).to_dict("records")[0]
     return {"status":True,"data":data,"avg_data":avg_data}
 
-
+# provides the overall expense and most recent 10 expenses
 def provide_expense_data(user_id):
-    conn,cursor=connect_db()
+    connection,cursor=connect_db()
     cursor.execute(queries["overall_expense"].format(user_id=user_id))
     overall_expense=str(cursor.fetchone()[0])
-    df=pd.read_sql_query(queries["recent_expenses"].format(user_id=user_id),engine)
+    cursor.close()
+    connection.close()
+    df=pd.read_sql_query(sql=to_sql_text(queries["recent_expenses"].format(user_id=user_id)),con=conn)
     df['date'] = pd.to_datetime(df['date'])
     df['date'] = df['date'].dt.strftime('%Y-%m-%d')
     data=df.to_dict("records")
     return {"overall_expense":overall_expense,"expenses":data}
     
-
+# provides analytical data for expense dashboard
 def provide_expense_dashboard(user_id):
-    df=pd.read_sql_query(queries["expense_per_type"].format(user_id=user_id),engine)
+    df=pd.read_sql_query(sql=to_sql_text(queries["expense_per_type"].format(user_id=user_id)),con=conn)
     expenses_per_type=df.to_dict("list")
-    df=pd.read_sql_query(queries["expense_trend"].format(user_id=user_id),engine)
+    df=pd.read_sql_query(sql=to_sql_text(queries["expense_trend"].format(user_id=user_id)),con=conn)
     expense_trend=df.to_dict("list")
-    df=pd.read_sql_query(queries["expenses_per_month"].format(user_id=user_id),engine)[["month_name","expenses"]]
+    df=pd.read_sql_query(sql=to_sql_text(queries["expenses_per_month"].format(user_id=user_id)),con=conn)[["month_name","expenses"]]
     expenses_per_month=df.to_dict("list")
-    df=pd.read_sql_query(queries["expenses_per_year"].format(user_id=user_id),engine)[["year","expenses"]]
+    df=pd.read_sql_query(sql=to_sql_text(queries["expenses_per_year"].format(user_id=user_id)),con=conn)[["year","expenses"]]
     expenses_per_year=df.to_dict("list")
-    df=pd.read_sql_query(queries["expense_per_month_per_type"].format(user_id=user_id),engine)
+    df=pd.read_sql_query(sql=to_sql_text(queries["expense_per_month_per_type"].format(user_id=user_id)),con=conn)
     grouped_df = df.groupby(by="month")
     expenses_per_month_per_type=[]
     for month,df in grouped_df:
@@ -142,7 +169,7 @@ def provide_expense_dashboard(user_id):
             "data": df[["expense_type","expenses"]].to_dict("list")
         }
         expenses_per_month_per_type.append(month_data)
-    df=pd.read_sql_query(queries["expenses_per_year_per_type"].format(user_id=user_id),engine)
+    df=pd.read_sql_query(sql=to_sql_text(queries["expenses_per_year_per_type"].format(user_id=user_id)),con=conn)
     grouped_df = df.groupby(by="year")
     expenses_per_year_per_type=[]
     for year,df in grouped_df:
@@ -161,3 +188,20 @@ def provide_expense_dashboard(user_id):
     "expenses_per_year_per_type": expenses_per_year_per_type,
     }
     return results
+
+
+def dashboard_data(user_id):
+    avg_data=pd.read_sql_query(sql=to_sql_text(dashboard_queries["avg_health_data"].format(user_id=user_id)),con=conn).to_dict("records")[0]
+    connection,cursor=connect_db()
+    cursor.execute(queries["overall_expense"].format(user_id=user_id))
+    overall_expense=str(cursor.fetchone()[0])
+    cursor.close()
+    connection.close()
+    df=pd.read_sql_query(sql=to_sql_text(dashboard_queries["reports"].format(user_id=user_id)),con=conn)
+    df["report_date"]=df.report_date.astype(str)
+    df["submitted_at"]=df.submitted_at.astype(str)
+    reports=df.to_dict("records")
+    df=pd.read_sql_query(sql=to_sql_text(dashboard_queries["graph_data"].format(user_id=user_id)),con=conn)
+    df["submitted_at"]=df.submitted_at.astype(str)
+    graph_data=df.to_dict("list")
+    return {"overall_expense":overall_expense,"avg_health_data":avg_data,"reports":reports,"graph_data":graph_data,"appointment":{"id":1,"doctor_name":"Dr Zahir Kazi","date":"6/9/69"}}

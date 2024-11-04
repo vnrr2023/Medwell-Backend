@@ -63,6 +63,29 @@ Give me the following details in json format
     date of collection with key as "date_of_collections" with dd/mm/yy format with no leading zeroes
     summary the report with key as "summary".
 Only give me json with no preamble
+''',
+"health_summary_prompt":'''
+  You will receive a user's complete medical history, including:
+
+Date of report
+Type of report
+Detailed report data with various metrics, each indicating its normal range, unit, and current measured value.
+Task: Analyze this data to:
+
+Provide an overall health summary of approximately 400 words that:
+
+Highlights trends in critical health metrics and any notable fluctuations over time.
+Identifies deficiencies, excesses, or patterns that may indicate potential health concerns 
+Assesses the user's overall health status, detailing how well their results align with healthy ranges and discussing implications of any recurring deviations from these ranges.
+Create a personalized diet and nutrition plan that:
+
+Recommends specific foods and dietary adjustments to address the user's unique needs (e.g., foods rich in iron, vitamin D, or low in sodium).
+Includes general advice to support balanced nutrition and ongoing health improvement based on observed trends.
+Output Format: Return a JSON object structured as follows, with no extra text or preamble:
+
+"summary": A string containing the detailed health summary.
+"plans": A string containing the personalized diet and nutrition plan.
+Return the JSON in a precise format with no additional whitespace before or after keys and no preamble.
 '''
 }
 

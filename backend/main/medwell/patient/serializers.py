@@ -28,7 +28,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
         ]
 
 class PatientSerializer(serializers.ModelSerializer):
-    user_info=CustomUserSerializer(read_only=True)
+    user_info = CustomUserSerializer(source='user', read_only=True)
     class Meta:
         model=PatientProfile
         fields = [
@@ -43,8 +43,11 @@ class PatientSerializer(serializers.ModelSerializer):
             'state',
             'pin',
             'profile_pic',
+            'profile_qr',
             'adhaar_card',
             'allergies',
             'chronic_conditions',
-            'family_history'
+            'family_history',
+            'health_summary',
+            'diet_plan'
         ]

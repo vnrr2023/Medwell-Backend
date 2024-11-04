@@ -50,5 +50,15 @@ def expenses_dashboard(request):
         return JsonResponse(data=resp.json(),safe=False,status=200)
     return JsonResponse(data={"mssg":"Server down.."},status=503)
 
+@api_view(["POST"])
+@csrf_exempt
+@permission_classes([IsAuthenticated])
+def delete_expense(request):
+    user=request.user
+    id=request.data["expense_id"]
+    exp=Expense.objects.get(id=int(id))
+    exp.delete()
+    return JsonResponse({"mssg":"Expense Deleted Successfully..."},status=200)
 
-    
+
+

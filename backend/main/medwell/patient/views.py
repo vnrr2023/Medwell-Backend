@@ -11,6 +11,9 @@ from django.core.mail import send_mail
 from .services import create_html
 import httpx
 from .serializers import PatientSerializer
+import datetime
+from authentication.security import create_token
+from .utils import create_qr
 
 AI_SERVER_URL="http://localhost:8888/"
 PATIENT_SERVER_URL="http://127.0.0.1:5000/"
@@ -55,6 +58,7 @@ def health_check(request):
 @permission_classes([IsAuthenticated])
 def save_patient_info(request):
     data=request.data
+    print(data)
     patient=PatientProfile.objects.get(user=request.user)
     for key, value in data.items():
         setattr(patient, key, value)
@@ -67,7 +71,7 @@ def save_patient_info(request):
 @csrf_exempt
 @permission_classes([IsAuthenticated])
 def update_profile_pic(request):
-    pp=request.POST.FILES["profile_pic"]
+    pp=request.FILES["profile_pic"]
     patient=PatientProfile.objects.get(user=request.user)
     patient.profile_pic=pp
     patient.save()
@@ -83,4 +87,33 @@ def get_patient_info(request):
         data=data,safe=False,status=200
     )
 
-    
+@api_view(["POST"])
+@csrf_exempt
+@permission_classes([IsAuthenticated])   
+def share_with_doctor(request):
+    user=request.user
+    payload={
+        "user_id":user.id,
+        "email":user.email,
+        'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=10),
+    }
+    enc_token=create_token(payload)
+    path=create_qr(enc_token,user.email)
+    path="/"+"/".join(path.split("\\")[-3:])
+    return JsonResponse(
+        {"qr_code":path},status=200
+    )
+
+@api_view(["POST"])
+@csrf_exempt
+@permission_classes([IsAuthenticated])   
+def patient_dashboard(request):
+    user=request.user
+    resp = httpx.post(
+            f"{PATIENT_SERVER_URL}get_dashboard_data/",
+            json={"user_id": user.id}
+        )
+    print(resp.json(),resp.status_code)
+    if resp.status_code==200:
+        return JsonResponse(data=resp.json(),status=resp.status_code)
+    return JsonResponse(data={},status=status.HTTP_503_SERVICE_UNAVAILABLE)

@@ -14,6 +14,7 @@ SELF_URL="http://localhost:8000/"
 @csrf_exempt
 @permission_classes([IsAuthenticated])
 def send_report(request):
+    print(request.FILES)
     pdf_file=request.FILES['report']
     user=request.user
     report=Report.objects.create(user=user,report_file=pdf_file)
@@ -31,7 +32,6 @@ def send_report(request):
 
 @api_view(["GET"])
 @csrf_exempt
-@permission_classes([IsAuthenticated])
 def get_report_task_status(request):
     task_id=request.GET["task_id"]
     resp=requests.get(AI_SERVER_URL+f"get_task_status/?task_id={task_id}").json()

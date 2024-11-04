@@ -3,6 +3,7 @@ import jwt
 import os
 import environ
 from urllib.parse import quote
+import json
 
 env=environ.Env()
 env_file_path=os.path.join('..', '.env')
@@ -33,4 +34,8 @@ def give_token_for_otp(payload:dict):
     token=create_token(payload)
     return token
     
+def create_encrypted_json(payload):
+    string=json.dumps(payload)
+    enc_string=cipher_suite.encrypt(string.encode()).decode()
+    return enc_string
 

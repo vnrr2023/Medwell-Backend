@@ -9,7 +9,22 @@ import io
 import requests
 from ai import get_model_response
 from prompt_templates import prompts,data_template
+import pandas as pd
+from sqlalchemy import create_engine,text as to_sql_text
 
+
+db_username = 'myuser'
+db_password = 'root'
+db_host = 'localhost'
+db_port = '5432'
+db_name = 'medwell_db'
+
+connection_string = f'postgresql+psycopg2://{db_username}:{db_password}@{db_host}:{db_port}/{db_name}'
+engine = create_engine(connection_string)
+conn=engine.connect()
+
+from langchain_core.output_parsers import JsonOutputParser
+parser=JsonOutputParser()
 
 class Config:
     CELERY_BROKER_URL:str="redis://127.0.0.1:6379/0"
@@ -19,7 +34,11 @@ class Config:
 settings=Config()
 celery_app=Celery(__name__,broker=settings.CELERY_BROKER_URL,backend=settings.CELERY_RESULT_BACKEND)
 
+
+
+
 def connect_db():
+
     connection = psycopg2.connect(
         host='localhost',
         port='5432',
@@ -33,6 +52,61 @@ def connect_db():
 def send_status_to_mail(user_id,file,status):
     resp=requests.post("http://127.0.0.1:8000/patient/send_status_of_task_to_mail/",json={"user_id":user_id,"pdf_file":file.split("/")[-1],"status":status})
     
+
+def generate_report_text(report_data):
+    report_text = ""
+    for test, details in report_data.items():
+        min_val = details['min']
+        max_val = details['max']
+        unit = details['unit']
+        value = details['value']
+        if value==-1:continue
+        
+        value_text = f"{value} {unit}" if value != -1 else "Not available"
+        
+        report_text += f"{test.capitalize()}: Normal range {min_val}-{max_val} {unit}, Current value: {value_text}\n"
+    
+    return report_text
+
+
+def save_health_and_diet_data(user_id):
+    print('came to health summary')
+    df=pd.read_sql_query(sql=to_sql_text('''
+    select date_of_report,report_type,report_data from patient_report r join patient_reportdetail d on r.id=d.report_id 
+    where user_id={user_id}
+    order by r.submitted_at desc
+    limit 5;
+    '''.format(user_id=user_id)),con=conn)
+    df["report_data"]=df.report_data.apply(generate_report_text)
+    entire_data_text=""
+    for index,data in df.iterrows():
+        text=f'''
+        report date:{data.date_of_report} report type : {data.report_type}
+        report data :
+        {data.report_data}
+        \n
+        '''
+        entire_data_text+=text
+    for _ in range(5):
+        try:
+            resp=get_model_response(prompts["health_summary_prompt"],entire_data_text)
+            resp=parser.parse(resp)
+            break
+        except Exception as e:
+            print(e)
+            pass
+    health_query='''
+    update patient_patientprofile
+    set health_summary=%s,diet_plan=%s
+    where user_id=%s;
+    '''
+    health_values=(resp["summary"],resp["plans"],user_id)
+    connection,cursor=connect_db()
+    cursor.execute(health_query,health_values)
+    connection.commit()
+    connection.close()
+    cursor.close()
+
 
 @celery_app.task
 def process_pdf(file,report_id,user_id):
@@ -149,6 +223,7 @@ def process_pdf(file,report_id,user_id):
             connection.close()
             print("stored to db")
         send_status_to_mail(user_id,file,"SUCCESS")
+        save_health_and_diet_data(user_id)
         print("done")
     except Exception as e:
         print(e)

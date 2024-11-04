@@ -1,0 +1,71 @@
+[33mcommit feabfee7865e7e80b2252c9ee1eedd48228af940[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m
+Author: Viv696969 <chouhanvivek207@gmail.com>
+Date:   Mon Nov 4 11:57:18 2024 +0530
+
+    doctor login
+
+[33mcommit e81887b81694cec928ca4c181c579353a045f1ce[m
+Author: Viv696969 <chouhanvivek207@gmail.com>
+Date:   Wed Oct 30 15:18:36 2024 +0530
+
+    added chatbot and encryption
+
+[33mcommit 64c17e168f52daa84ec298b28c501bf34186fb14[m
+Author: Viv696969 <chouhanvivek207@gmail.com>
+Date:   Sun Oct 27 01:39:39 2024 +0530
+
+    expense dashboard done
+
+[33mcommit 677fe222350b845a49f964dd247a82ce40122a50[m
+Author: Viv696969 <chouhanvivek207@gmail.com>
+Date:   Sun Oct 27 01:12:55 2024 +0530
+
+    expense adding
+
+[33mcommit 44b1381f804f6206124d7c62db2576cc2da63884[m
+Author: Viv696969 <chouhanvivek207@gmail.com>
+Date:   Sat Oct 26 21:26:04 2024 +0530
+
+    patient logic
+
+[33mcommit d222176ab07aff46a8a4a417edeb81637872cb46[m
+Author: Viv696969 <chouhanvivek207@gmail.com>
+Date:   Mon Sep 30 03:36:17 2024 +0530
+
+    process report
+
+[33mcommit 3fd79a2610069df51202247529e5ec88d9f9478f[m
+Author: Viv696969 <chouhanvivek207@gmail.com>
+Date:   Sat Sep 28 21:09:38 2024 +0530
+
+    otp
+
+[33mcommit 9f4a62104402e593265c0116ea326d9d78823726[m
+Author: Viv696969 <chouhanvivek207@gmail.com>
+Date:   Sat Sep 28 20:19:34 2024 +0530
+
+    removed key
+
+[33mcommit 44503bbdccb8134b4a490aeceb2493085ccbd1b8[m
+Author: Viv696969 <chouhanvivek207@gmail.com>
+Date:   Sat Sep 28 02:34:39 2024 +0530
+
+    basic auth
+
+[33mcommit cc2c8ba6520b5c842f6f09535572e09d538c4a72[m
+Author: Viv696969 <chouhanvivek207@gmail.com>
+Date:   Wed Sep 25 00:01:50 2024 +0530
+
+    backend started
+
+[33mcommit 1b86d188ad87a6ff08c86971d250a51c1fdde17c[m
+Author: Viv696969 <chouhanvivek207@gmail.com>
+Date:   Tue Sep 24 22:03:49 2024 +0530
+
+    report analysis done
+
+[33mcommit 1c07c92e59c0de73af134344c9683d9eeb3af45c[m
+Author: Viv696969 <chouhanvivek207@gmail.com>
+Date:   Mon Sep 23 01:26:31 2024 +0530
+
+    ai test

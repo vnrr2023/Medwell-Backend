@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'rest_framework_simplejwt',
+    'doctor'
     
 ]
 
@@ -99,7 +100,15 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 AUTH_USER_MODEL = 'authentication.CustomUser'
 CORS_ORIGIN_ALLOW_ALL = True
-
+CORS_ALLOW_HEADERS = (
+    "accept",
+    "authorization",
+    "content-type",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+    "ngrok-skip-browser-warning" 
+)
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/

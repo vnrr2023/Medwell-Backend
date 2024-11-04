@@ -14,30 +14,36 @@ from .models import *
 import random
 from django.shortcuts import get_object_or_404
 import datetime
-from .security import decrypt_token,give_token_for_otp,give_enc_token
+from .security import decrypt_token,give_token_for_otp,give_enc_token,create_encrypted_json
 from django.core.mail import send_mail
 from rest_framework.response import Response
 from urllib.parse import unquote
 from django.template.loader import render_to_string
 from patient.models import PatientProfile
+from doctor.models import DoctorProfile
 from django.core.files.base import ContentFile
 from django.db.transaction import atomic
+from patient.utils import create_qr_for_profile
+
+
+
 
 @api_view(["POST"])
 @csrf_exempt
 def login_with_google( request):
     token=request.POST["token"]
+    role=request.POST["role"]
     if not token:
         return Response({"error": "Token not provided","status":False}, status=status.HTTP_400_BAD_REQUEST)
     try:
         id_info = id_token.verify_oauth2_token(token, google_requests.Request(), settings.GOOGLE_OAUTH2_CLIENT_ID)
-
         email = id_info['email']
         first_name = id_info.get('given_name', '')
         last_name = id_info.get('family_name', '')
-        given_name = id_info.get('given_name', '')
         profile_pic_url = id_info.get('picture', '')
-        
+        resp=requests.get(profile_pic_url)
+        if resp.status_code==200:
+            image_name = profile_pic_url.split("/")[-1]+".png"
 
         user, created = CustomUser.objects.get_or_create(email=email, defaults={
             'first_name': first_name,
@@ -49,13 +55,33 @@ def login_with_google( request):
         if created:
             user.set_unusable_password()
             user.save()
-            resp=requests.get(profile_pic_url)
-            patient=PatientProfile()
-            patient.name=first_name+last_name
-            if resp.status_code==200:
-                image_name = profile_pic_url.split("/")[-1]
-                patient.profile_pic.save(image_name, ContentFile(resp.content))
-            patient.save()
+            # resp=requests.get(profile_pic_url)
+            enc_string=create_encrypted_json({"user_id":user.id,"email":email})
+            path=create_qr_for_profile(enc_string,email)
+            path="/"+"/".join(path.split("\\")[-3:])
+            if role=="patient":
+                patient=PatientProfile.objects.create(user=user)
+                patient.name=first_name+last_name
+                patient.profile_qr=path
+                if resp.status_code==200:
+                    patient.profile_pic.save(image_name, ContentFile(resp.content))
+                patient.save()
+            elif role=="doctor":
+                doctor=DoctorProfile.objects.create(user=user)
+                doctor.name=first_name+last_name
+                doctor.profile_qr=path
+                if resp.status_code==200:
+                    doctor.profile_pic.save(image_name, ContentFile(resp.content))
+                doctor.save()
+                patient=PatientProfile.objects.create(user=user)
+                patient.name=first_name+last_name
+                patient.profile_qr=path
+                if resp.status_code==200:
+                    patient.profile_pic.save(image_name, ContentFile(resp.content))
+                patient.save()
+            elif role=="hospital":
+                pass
+            
             html_content = render_to_string('welcome_google.html', {'email': email, 'profile_pic_url': profile_pic_url})
             send_mail(
                 'Email Verification Medwell',
@@ -66,7 +92,6 @@ def login_with_google( request):
                 )
 
         refresh = RefreshToken.for_user(user)
-
         return Response(
             {
             "access": str(refresh.access_token),
@@ -106,19 +131,40 @@ def register_user(request):
     email=request.POST['email']
     password1=request.POST['password1']
     password2=request.POST['password2']
-    name=request.POST["full_name"]
+    name=request.POST["name"]
+    role=request.POST["role"]
 
     if password1==password2:
         try:
-            new_user=CustomUser.objects.create_user(
+            new_user:CustomUser=CustomUser.objects.create_user(
                 email=email,
                 password=password1,
                 profile_created=False,
                 first_name=name
             )
             new_user.save()
-            patient=PatientProfile.objects.create(name=name,user=new_user)
-            patient.save()
+            enc_string=create_encrypted_json({"user_id":new_user.id,"email":email})
+            path=create_qr_for_profile(enc_string,email)
+            path="/"+"/".join(path.split("\\")[-3:])
+            
+            if role=="patient":
+                patient=PatientProfile.objects.create(user=new_user)
+                patient.name=name
+                patient.profile_qr=path
+                patient.save()
+            elif role=="doctor":
+                doctor=DoctorProfile.objects.create(user=new_user)
+                reg_number=request.POST["registeration_number"]
+                doctor.registeration_number=reg_number
+                doctor.name=name
+                doctor.profile_qr=path
+                doctor.save()
+                patient=PatientProfile.objects.create(user=new_user)
+                patient.name=name
+                patient.profile_qr=path
+                patient.save()
+            elif role=="hospital":
+                pass
 
             refresh=RefreshToken.for_user(new_user)
             access=refresh.access_token
