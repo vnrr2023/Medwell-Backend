@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from langchain_core.output_parsers import JsonOutputParser
 import json,random
 from ai import get_llm_response
+from report_chatbot import save_to_vector_db,create_user_data
 
 parser=JsonOutputParser()
 app=FastAPI()
@@ -65,4 +66,33 @@ async def answer_query(request:Request):
 @app.get("/test")
 async def test():
     return {"data":"ok"}
+
+
+@app.post("/add_user_data/")
+async def add_user_report_data(request:Request):
+    data=await request.json()
+    report_id,user_id,email=data["report_id"],data["user_id"],data["email"]
+    status=save_to_vector_db(report_id,user_id,email)
+    if status:
+        return JSONResponse({"mssg":"Saved to Vector DB"},status_code=201)
+    return JSONResponse({"mssg":"Error saving to Vector DB"},status_code=400)
+
+
+@app.post("/create_agent/")
+async def create_agent(request:Request):
+    data=await request.json()
+    user_id,email=data["user_id"],data["email"]
+    status=create_user_data(user_id,email)
+    if status:
+        return JSONResponse({"mssg":"Agent Created"},status_code=201)
+    return JSONResponse({"mssg":"Error creating agent"},status_code=400)
+
+@app.post("/create_agent/")
+async def create_agent(request:Request):
+    data=await request.json()
+    user_id,email=data["user_id"],data["email"]
+    status=create_user_data(user_id,email)
+    if status:
+        return JSONResponse({"mssg":"Agent Created"},status_code=201)
+    return JSONResponse({"mssg":"Error creating agent"},status_code=400)
 

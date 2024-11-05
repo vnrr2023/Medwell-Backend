@@ -57,6 +57,7 @@ def login_with_google( request):
             user.save()
             # resp=requests.get(profile_pic_url)
             enc_string=create_encrypted_json({"user_id":user.id,"email":email})
+            print("Encrypted string== ",enc_string)
             path=create_qr_for_profile(enc_string,email)
             path="/"+"/".join(path.split("\\")[-3:])
             if role=="patient":
@@ -70,6 +71,8 @@ def login_with_google( request):
                 doctor=DoctorProfile.objects.create(user=user)
                 doctor.name=first_name+last_name
                 doctor.profile_qr=path
+                reg_number=request.POST["registeration_number"]
+                doctor.registeration_number=reg_number
                 if resp.status_code==200:
                     doctor.profile_pic.save(image_name, ContentFile(resp.content))
                 doctor.save()
@@ -144,6 +147,7 @@ def register_user(request):
             )
             new_user.save()
             enc_string=create_encrypted_json({"user_id":new_user.id,"email":email})
+            print("Encrypted string== ",enc_string)
             path=create_qr_for_profile(enc_string,email)
             path="/"+"/".join(path.split("\\")[-3:])
             

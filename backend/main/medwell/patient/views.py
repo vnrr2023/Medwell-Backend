@@ -12,8 +12,9 @@ from .services import create_html
 import httpx
 from .serializers import PatientSerializer
 import datetime
-from authentication.security import create_token
-from .utils import create_qr
+from authentication.security import create_token,decrypt_json_string
+from .models import RequestAccess
+from .utils import create_qr,request_access
 
 AI_SERVER_URL="http://localhost:8888/"
 PATIENT_SERVER_URL="http://127.0.0.1:5000/"
@@ -117,3 +118,21 @@ def patient_dashboard(request):
     if resp.status_code==200:
         return JsonResponse(data=resp.json(),status=resp.status_code)
     return JsonResponse(data={},status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+@api_view(["POST"])
+@csrf_exempt
+@permission_classes([IsAuthenticated])
+def provide_access(request):
+    try:
+        enc_string=request.data["enc_data"]
+        data=decrypt_json_string(enc_string)
+        doctor=CustomUser.objects.get(id=int(data["user_id"]))
+        req_access=RequestAccess.objects.create(
+            doctor=doctor,patient=request.user
+            )
+        request_access(data["user_id"],request.user.id)
+        return JsonResponse(data={"mssg":f"Request Granted to {doctor.first_name} Successfully..."},status=200)
+    except Exception as e:
+        print(e)
+        return JsonResponse(data={"mssg":"Issue Granting Request..Please try again..."},status=400)
+

@@ -74,3 +74,12 @@ class Expense(models.Model):
 
     def __str__(self) -> str:
         return self.user.email
+    
+
+class RequestAccess(models.Model):
+    doctor=models.ForeignKey(CustomUser,on_delete=models.CASCADE,related_name="the_doctor")
+    patient=models.ForeignKey(CustomUser,on_delete=models.CASCADE,related_name="the_patient")
+    requested_at=models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return self.doctor.email+"|"+self.patient.email

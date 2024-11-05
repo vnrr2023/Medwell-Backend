@@ -5,9 +5,13 @@ from langchain_chroma import Chroma
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains.retrieval import create_retrieval_chain
 from langchain_core.prompts import ChatPromptTemplate
+from groq import Groq
 from dotenv import load_dotenv
+from report_chatbot import client as redis_client
 load_dotenv()
 
+
+client=Groq(api_key=os.environ['GROQ_API_KEY_'])
 llm = ChatGroq(
     model="llama-3.1-70b-versatile",api_key=os.environ.get("GROQ_API_KEY_")
 )
@@ -36,4 +40,6 @@ retrieval_chain=create_retrieval_chain(retriever,document_chain)
 def get_llm_response(question):
     response=retrieval_chain.invoke({"input":question})['answer']
     return response
-    
+
+
+def get_report_data_response(user_id,email,)

@@ -189,7 +189,7 @@ def provide_expense_dashboard(user_id):
     }
     return results
 
-
+# gives data for entire dashboard
 def dashboard_data(user_id):
     avg_data=pd.read_sql_query(sql=to_sql_text(dashboard_queries["avg_health_data"].format(user_id=user_id)),con=conn).to_dict("records")[0]
     connection,cursor=connect_db()

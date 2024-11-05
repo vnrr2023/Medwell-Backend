@@ -1,6 +1,8 @@
 from django.db import models
 from authentication.models import CustomUser
+from patient.models import PatientProfile
 from uuid import uuid4
+from datetime import datetime
 
 
 class DoctorProfile(models.Model):
@@ -26,6 +28,5 @@ class DoctorProfile(models.Model):
     def __str__(self) -> str:
         return self.user.email
     
-
 
 

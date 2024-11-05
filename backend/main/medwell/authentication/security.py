@@ -39,3 +39,6 @@ def create_encrypted_json(payload):
     enc_string=cipher_suite.encrypt(string.encode()).decode()
     return enc_string
 
+def decrypt_json_string(string:str):
+    json_string=cipher_suite.decrypt(string.encode()).decode()
+    return eval(json_string)
