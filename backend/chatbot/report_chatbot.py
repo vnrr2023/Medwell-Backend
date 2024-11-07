@@ -36,45 +36,51 @@ def add_to_collection(collection,data,id):
     )
 
 REPORT_QUERY='''
-select date_of_collection,report_type,summary,report_data from patient_report p join
-patient_reportdetail r on p.id=r.report_id
-where p.id={report_id}
+SELECT date_of_collection, report_type, summary, report_data 
+FROM patient_report p 
+JOIN patient_reportdetail r ON p.id = r.report_id 
+WHERE p.id = :report_id;
 '''
 
 def save_to_vector_db(report_id,user_id,email:str):
-    try:
-        df=pd.read_sql_query(sql=to_sql_text(REPORT_QUERY.format(report_id=report_id)),con= conn)
-        df["report_data"]=df.report_data.apply(generate_report_text)
-        print("got data and processed it")
-        text=f'''
-        Date of report: {df.iloc[0]["date_of_collection"]}
-        Report Type: {df.iloc[0]["report_type"]}
-        Summary of report: {df.iloc[0]["summary"]}
-        Report data : {df.iloc[0]["report_data"]}
-        '''
-        print(text)
-        email=email.split("@")[0]
-        collection=db.get_or_create_collection(email+user_id)
-        count=collection.count()
-        if count==0:
-            add_to_collection(collection,text,str(0))
-        elif count<5:
-            add_to_collection(collection,text,str(count))
-        else:
-            to_delete=collection.get(limit=1)["ids"][0]
-            collection.delete(ids=[to_delete])
-            add_to_collection(collection,text,str(int(to_delete)+5))
-        print("saved to db")
-        return True
-    except:
-        return False
+    # try:
+    df = pd.read_sql_query(
+        sql=to_sql_text(REPORT_QUERY), 
+        con=conn, 
+        params={'report_id': report_id}
+    )
+    df["report_data"]=df.report_data.apply(generate_report_text)
+    print("got data and processed it")
+    text=f'''
+    Date of report: {df.iloc[0]["date_of_collection"]}
+    Report Type: {df.iloc[0]["report_type"]}
+    Summary of report: {df.iloc[0]["summary"]}
+    Report data : {df.iloc[0]["report_data"]}
+    '''
+    print(text)
+    email=email.split("@")[0]
+    collection=db.get_or_create_collection(email+user_id)
+    count=collection.count()
+    if count==0:
+        add_to_collection(collection,text,str(0))
+    elif count<5:
+        add_to_collection(collection,text,str(count))
+    else:
+        to_delete=collection.get(limit=1)["ids"][0]
+        collection.delete(ids=[to_delete])
+        add_to_collection(collection,text,str(int(to_delete)+5))
+    print("saved to db")
+    return True
+    # except:
+    #     return False
 
 def create_user_data(user_id:str,email:str):
     email=email.split("@")[0]
     collection=db.get_or_create_collection(email+user_id)
     user_data="\n".join(collection.get()["documents"])
-    client.setex(f"report_chatbot_{email+user_id}",900,user_data)
-    return True
+    key=f"report_chatbot_{email+user_id}"
+    client.setex(key,900,user_data)
+    return True,key
 
 
     

@@ -42,4 +42,29 @@ def get_llm_response(question):
     return response
 
 
-def get_report_data_response(user_id,email,)
+def get_llm_response_for_report_chatbot(data,question):
+    chat_completion = client.chat.completions.create(
+    messages=[
+         {"role":"system", "content":"""
+         You are task is to answer questions based on the context only.Give me the reponse in json format only with two keys
+         "ans": the answer in short about 60 to 70 words based on the context only. paraphrase the question while answering
+         "status": value should be "true" if the answer is found in the context else will be "false".
+         give me the response in json format with no preamble and no nested json and only text.
+         Context: {context}
+        """.format(context=data)
+         },
+         {
+            "role": "user",
+            "content": question,
+        }
+    ],
+    model="llama3-70b-8192",
+    )
+    return chat_completion.choices[0].message.content
+    
+
+def get_report_data_response(key,question):
+    data=redis_client.get(key)
+    if not data:
+        pass
+    return get_llm_response_for_report_chatbot(data,question)

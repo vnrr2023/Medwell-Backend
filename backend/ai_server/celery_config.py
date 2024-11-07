@@ -1,12 +1,7 @@
 from celery import Celery
 from celery.result import AsyncResult
 import psycopg2
-import uuid
-import json
-import urllib3
-import pdfplumber
-import io
-import requests
+import uuid,json,urllib3,pdfplumber,io,requests
 from ai import get_model_response
 from prompt_templates import prompts,data_template
 import pandas as pd
@@ -52,6 +47,20 @@ def connect_db():
 def send_status_to_mail(user_id,file,status):
     resp=requests.post("http://127.0.0.1:8000/patient/send_status_of_task_to_mail/",json={"user_id":user_id,"pdf_file":file.split("/")[-1],"status":status})
     
+def save_data_to_vdb(user_id,report_id):
+    connection,cursor=connect_db()
+    cursor.execute("select email from authentication_customuser where id=%s",(user_id,))
+    email=cursor.fetchone()[0]
+    for _ in range(3):
+        try:
+            resp=requests.post("http://127.0.0.1:6000/add_user_data/",json={"user_id":user_id,"report_id":report_id,"email":email})
+            if resp.status_code==201:
+                print("saved to vector db")
+                break
+            else:
+                print("error saving")
+        except:
+            pass
 
 def generate_report_text(report_data):
     report_text = ""
@@ -224,7 +233,8 @@ def process_pdf(file,report_id,user_id):
             print("stored to db")
         send_status_to_mail(user_id,file,"SUCCESS")
         save_health_and_diet_data(user_id)
-        print("done")
+        print("done saving to db and creating diet plans")
+        save_data_to_vdb(user_id,report_id)
     except Exception as e:
         print(e)
         send_status_to_mail(user_id,file,"FAILED")

@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from langchain_core.output_parsers import JsonOutputParser
 import json,random
-from ai import get_llm_response
+from ai import get_llm_response,get_report_data_response
 from report_chatbot import save_to_vector_db,create_user_data
 
 parser=JsonOutputParser()
@@ -82,17 +82,24 @@ async def add_user_report_data(request:Request):
 async def create_agent(request:Request):
     data=await request.json()
     user_id,email=data["user_id"],data["email"]
-    status=create_user_data(user_id,email)
+    status,key=create_user_data(str(user_id),email)
     if status:
-        return JSONResponse({"mssg":"Agent Created"},status_code=201)
+        return JSONResponse({"mssg":"Agent Created","key":key},status_code=201)
     return JSONResponse({"mssg":"Error creating agent"},status_code=400)
 
-@app.post("/create_agent/")
-async def create_agent(request:Request):
+@app.post("/chat/")
+async def chat(request:Request):
     data=await request.json()
-    user_id,email=data["user_id"],data["email"]
-    status=create_user_data(user_id,email)
-    if status:
-        return JSONResponse({"mssg":"Agent Created"},status_code=201)
-    return JSONResponse({"mssg":"Error creating agent"},status_code=400)
+    key,question=data["key"],data["question"]
+    resp=get_report_data_response(key,question)
+    try:
+        data=parser.parse(resp)
+    except:
+        try:
+            data=eval(resp)
+        except:
+            JSONResponse({"data":"Error retreiving data.."},status_code=200)
+    if data["status"]=="true":
+        return JSONResponse({"data":data["ans"]},status_code=200)
+    return JSONResponse({"data":"It seems the information relevant to your question doesnt exist..."},status_code=400)
 

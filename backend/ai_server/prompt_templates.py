@@ -57,12 +57,13 @@ Strictly give me in proper json format with no nested json and  with no preamble
 ''' ,
     "other_prompt":'''
 you are a medical report summarizer and entity extractor.
+If you dont get any value assign it None
 Give me the following details in json format
     name of the doctor with key as "doctor_name"
     date of report with key as "date_of_report" with dd/mm/yy format with no leading zeroes
     date of collection with key as "date_of_collections" with dd/mm/yy format with no leading zeroes
     summary the report with key as "summary".
-Only give me json with no preamble
+Only give me json with no preamble.
 ''',
 "health_summary_prompt":'''
   You will receive a user's complete medical history, including:
