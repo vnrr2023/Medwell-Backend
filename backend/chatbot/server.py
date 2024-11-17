@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from langchain_core.output_parsers import JsonOutputParser
 import json,random
-from ai import get_llm_response,get_report_data_response
+from ai import get_llm_response,get_report_data_response,predicted_intent,response_map
 from report_chatbot import save_to_vector_db,create_user_data
 
 parser=JsonOutputParser()
@@ -91,6 +91,8 @@ async def create_agent(request:Request):
 async def chat(request:Request):
     data=await request.json()
     key,question=data["key"],data["question"]
+    resp=predicted_intent(question)
+    if resp["status"]:return response_map[resp["intent"]][random.randint(0,9)]
     resp=get_report_data_response(key,question)
     try:
         data=parser.parse(resp)

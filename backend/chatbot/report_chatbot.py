@@ -15,6 +15,14 @@ engine = create_engine(connection_string)
 conn=engine.connect()
 db = chromadb.PersistentClient(path="user_report_data")
 
+
+REPORT_QUERY='''
+SELECT date_of_collection, report_type, summary, report_data 
+FROM patient_report p 
+JOIN patient_reportdetail r ON p.id = r.report_id 
+WHERE p.id = :report_id;
+'''
+
 def generate_report_text(report_data):
     report_text = ""
     for test, details in report_data.items():
@@ -35,12 +43,7 @@ def add_to_collection(collection,data,id):
         documents=[data],ids=[id]
     )
 
-REPORT_QUERY='''
-SELECT date_of_collection, report_type, summary, report_data 
-FROM patient_report p 
-JOIN patient_reportdetail r ON p.id = r.report_id 
-WHERE p.id = :report_id;
-'''
+
 
 def save_to_vector_db(report_id,user_id,email:str):
     # try:
@@ -61,9 +64,7 @@ def save_to_vector_db(report_id,user_id,email:str):
     email=email.split("@")[0]
     collection=db.get_or_create_collection(email+user_id)
     count=collection.count()
-    if count==0:
-        add_to_collection(collection,text,str(0))
-    elif count<5:
+    if count<5:
         add_to_collection(collection,text,str(count))
     else:
         to_delete=collection.get(limit=1)["ids"][0]

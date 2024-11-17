@@ -9,7 +9,11 @@ from groq import Groq
 from dotenv import load_dotenv
 from report_chatbot import client as redis_client
 load_dotenv()
-
+import numpy as np
+import pickle
+import spacy
+nlp=spacy.load("en_core_web_lg")
+chatbot_model=pickle.load(open("chatbot.pkl","rb"))
 
 client=Groq(api_key=os.environ['GROQ_API_KEY_'])
 llm = ChatGroq(
@@ -27,6 +31,67 @@ Ensure your response is concise and friendly, without any preamble or extra text
 Question: {input}
 '''
 
+response_map={
+    "welcome": [
+    "Hey, I'm MedBuddy! I can help analyze your reports and answer questions like... For example, can you show me my hemoglobin trend?",
+    "Hello! I'm MedBuddy, your electronic report assistant. How can I assist you with your health reports today?",
+    "Heyy! i am medbuddy your electronic report assistant which answers questions by analyzing your reports. Eg: Whats my hemoglobin trend.."
+    "Hello! I’m MedBuddy. I can provide insights on your medical reports. Would you like to know about your hemoglobin trends?",
+    "Hi! I’m MedBuddy, your report assistant. Want to see your hemoglobin levels over the last few months?",
+    "I’m MedBuddy! Need to analyze your medical reports? I can show you trends in hemoglobin, blood pressure, and more.",
+    "Hey! It’s MedBuddy. I analyze your reports for you. Want to see your hemoglobin levels and how they’ve changed?",
+    "Hi, MedBuddy here! I can help you track trends in your reports. Do you want to see how they’ve changed?",
+    "Hi, I'm MedBuddy! Need help with your medical reports? I can show you the hemoglobin trends, blood pressure, and more.",
+    "Hey! I’m MedBuddy. I analyze your health reports. Want me to summarize your hemoglobin trend or any other data?"
+],
+    "thank_you": [
+      "You're welcome!",
+      "Glad I could help!",
+      "No problem at all!",
+      "It was my pleasure!",
+      "You're very welcome!",
+      "Anytime, happy to help!",
+      "Glad I could assist you!",
+      "You're welcome, feel free to ask if you need anything!",
+      "It was nothing, happy to help!",
+      "You're welcome, take care!"
+    ]
+,
+    "bye": [
+      "Goodbye! Have a great day!",
+      "See you later!",
+      "Take care!",
+      "Goodbye! Feel free to come back anytime!",
+      "Bye! It was nice talking to you!",
+      "Have a wonderful day ahead!",
+      "Take care and see you soon!",
+      "Goodbye! Don't hesitate to ask if you need anything else!",
+      "See you soon, take care!",
+      "Bye! Stay safe and take care!"
+    ]
+ ,
+    "about": [
+    "Hello! I'm MedBuddy, your Electronic Report Assistant, created by VNRR.",
+    "Hi, I'm MedBuddy, your personalized Electronic Report Assistant, brought to you by VNRR.",
+    "Greetings! I'm MedBuddy, your Electronic Report Assistant, designed by VNRR.",
+    "Hey there! I'm MedBuddy, your trusty Electronic Report Assistant developed by VNRR.",
+    "Hi! MedBuddy here, your Electronic Report Assistant, created by the team at VNRR.",
+    "Hello, I'm MedBuddy, your Electronic Report Assistant, developed by VNRR to assist you.",
+    "Greetings from MedBuddy, your Electronic Report Assistant, made by VNRR.",
+    "Hey! I’m MedBuddy, your Electronic Report Assistant designed and created by VNRR.",
+    "Hello, this is MedBuddy, your Electronic Report Assistant, built by VNRR.",
+    "Hi, MedBuddy at your service! Your Electronic Report Assistant, designed by VNRR."
+]
+  }
+
+intent_map={0: 'welcome', 1: 'thank_you', 2: 'bye', 3: 'help', 4: 'about'}
+
+def predicted_intent(question):
+    vector=[nlp(question).vector]
+    predicted=chatbot_model.predict(vector)
+    if intent_map[predicted[0]]!="help":return {"status":True,"intent":intent_map[predicted[0]]}
+    return {'status':False}
+
 embeddings=HuggingFaceEmbeddings()
 persist_directory = "chatbot_db"
 collection_name="remedies_chatbot_v2"
@@ -43,6 +108,7 @@ def get_llm_response(question):
 
 
 def get_llm_response_for_report_chatbot(data,question):
+    
     chat_completion = client.chat.completions.create(
     messages=[
          {"role":"system", "content":"""
