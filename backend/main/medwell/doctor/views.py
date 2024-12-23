@@ -6,50 +6,90 @@ from rest_framework.decorators import api_view,permission_classes
 from django.http import JsonResponse
 import httpx
 from rest_framework import status
-from patient.utils import check_access
-from patient.models import RequestAccess,Report
-from .models import DoctorProfile
-from .serializers import RequestAccessSerializer
-from patient.serializers import GetReportsSerializer
-# Create your views here.
+from .models import DoctorProfile,DoctorAddress
+from .serializers import DoctorProfileSerializer,DoctorAddressSerializer
 
 DOCTOR_SERVER="http://localhost:7000/"
 PATIENT_SERVER_URL="http://localhost:5000/"
 
-@api_view(["GET"])
-@csrf_exempt
-@permission_classes([IsAuthenticated])
-def refresh_patients(request):
-    user=request.user
-    data=RequestAccessSerializer(RequestAccess.objects.filter(doctor=user).order_by("-requested_at"),many=True).data
-    return JsonResponse(data,safe=False)
 
 @api_view(["POST"])
 @csrf_exempt
 @permission_classes([IsAuthenticated])
-def get_patient_reports(request):
+def add_doctor_address(request):
+    data=request.data
     user=request.user
-    patient_id=request.data["patient_id"]
-    if check_access(doctor_id=user.id,patient_id=patient_id):
-        data=GetReportsSerializer(Report.objects.filter(user__id=int(patient_id)),many=True).data
-        return JsonResponse(data,safe=False)
-    return JsonResponse({"mssg":"Expired"},status=406)
+    doctor_address=DoctorAddress.objects.create(doctor=user,address_type=data["address_type"],address=data["address"],lat=float(data["lat"]),lon=float(data["lon"]))
+    profile:DoctorProfile=user.doctorprofile
+    resp=httpx.post(DOCTOR_SERVER+"add_address",json={
+    "doc_id": doctor_address.id,
+    "document": {
+        "user_id": user.id,
+        "name": profile.name,
+        "role": "doctor",
+        "speciality": profile.speciality,
+        "address": data["address"],
+        "phone_number": profile.phone_number,
+        "location": {
+            "lat": data["lat"],
+            "lon": data["lon"]
+        }
+    }
+})
+    return JsonResponse(resp.json(),status=resp.status_code)
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_doctor_info(request):
+    user=request.user
+    data=DoctorProfileSerializer(user.doctorprofile).data
+    return JsonResponse(data,status=status.HTTP_200_OK)
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_doctor_addresses(request):
+    addresses=DoctorAddress.objects.filter(doctor=request.user)
+    print(addresses)
+    data=DoctorAddressSerializer(addresses,many=True).data
+    print(data)
+    return JsonResponse({"addresses":data,"count":len(data)},status=200)
+    
 
     
 @api_view(["POST"])
 @csrf_exempt
 @permission_classes([IsAuthenticated])
-def get_patient_health_check(request):
-    user=request.user
-    patient_id=request.data["patient_id"]
-    if check_access(doctor_id=user.id,patient_id=patient_id):
-        resp = httpx.post(
-            f"{PATIENT_SERVER_URL}get_health_check/",
-            json={"user_id": user.id}
-        )
-        print(resp.json(),resp.status_code)
-        if resp.status_code==200 or resp.status_code==204:
-            return JsonResponse(data=resp.json(),status=resp.status_code)
-        return JsonResponse({"mssg":"Some Error Ocurred.."},status=400)
-    return JsonResponse({"mssg":"Expired"},status=status.HTTP_406_NOT_ACCEPTABLE)
+def update_doctor_profile(request):
+    data=request.data
+    doctor=DoctorProfile.objects.get(user=request.user)
+    for key,value in data.items():
+        setattr(doctor,key,value)
+    doctor.save()
+    data=DoctorProfileSerializer(doctor).data
+    return JsonResponse({"data":data},status=201)
+
+@api_view(["POST"])
+@csrf_exempt
+@permission_classes([IsAuthenticated])
+def update_multi_media_data(request):
+    try:
+        multi_media_name=request.POST["mm_type"]
+        doctor=DoctorProfile.objects.get(user=request.user)
+        file=request.FILES["file"]
+        if multi_media_name=="addhar":
+            doctor.adhaar_card=file
+        elif multi_media_name=="reg_card":
+            doctor.registeration_card_image=file
+        elif multi_media_name=="pp_image":
+            doctor.passport_size_image=file
+        elif multi_media_name=="profile_pic":
+            doctor.profile_pic=file
+        doctor.save()
+
+        return JsonResponse({"mssg":"Update Successfull...."},status=201)
+    except:
+        return JsonResponse({"mssg":"Update Unsucessfull...."},status=400)
+    
+
+
 

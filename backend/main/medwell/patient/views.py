@@ -59,7 +59,6 @@ def health_check(request):
 @permission_classes([IsAuthenticated])
 def save_patient_info(request):
     data=request.data
-    print(data)
     patient=PatientProfile.objects.get(user=request.user)
     for key, value in data.items():
         setattr(patient, key, value)
