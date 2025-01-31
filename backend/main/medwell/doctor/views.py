@@ -8,6 +8,7 @@ import httpx
 from rest_framework import status
 from .models import DoctorProfile,DoctorAddress
 from .serializers import DoctorProfileSerializer,DoctorAddressSerializer
+from .google_maps_utility import geocodeAddress
 
 DOCTOR_SERVER="http://localhost:7000/"
 PATIENT_SERVER_URL="http://localhost:5000/"
@@ -15,24 +16,38 @@ PATIENT_SERVER_URL="http://localhost:5000/"
 
 @api_view(["POST"])
 @csrf_exempt
-@permission_classes([IsAuthenticated])
+# @permission_classes([IsAuthenticated])
 def add_doctor_address(request):
     data=request.data
-    user=request.user
-    doctor_address=DoctorAddress.objects.create(doctor=user,address_type=data["address_type"],address=data["address"],lat=float(data["lat"]),lon=float(data["lon"]))
+    # user=request.user
+    user=CustomUser.objects.get(id=int(data["id"]))
+    address=data["address"]
+    timings=data["timings"]
+    geocoded_data=geocodeAddress(address)
+    if geocoded_data["status"]==False:
+        return JsonResponse({"mssg":"Address could not be added.Plz enter proper address"},status=status.HTTP_400_BAD_REQUEST)
+    
+    doctor_address=DoctorAddress.objects.create(
+        doctor=user,
+        address_type=data["address_type"],
+        address=geocoded_data["formatted_address"],
+        lat=float(geocoded_data["location"]["lat"]),
+        lon=float(geocoded_data["location"]["lng"]),
+        timings=timings
+        )
     profile:DoctorProfile=user.doctorprofile
-    resp=httpx.post(DOCTOR_SERVER+"add_address",json={
+    resp=httpx.post(DOCTOR_SERVER+"add_address/",json={
     "doc_id": doctor_address.id,
     "document": {
         "user_id": user.id,
         "name": profile.name,
         "role": "doctor",
         "speciality": profile.speciality,
-        "address": data["address"],
+        "address": doctor_address.address,
         "phone_number": profile.phone_number,
         "location": {
-            "lat": data["lat"],
-            "lon": data["lon"]
+            "lat": doctor_address.lat,
+            "lon":doctor_address.lon
         }
     }
 })
@@ -58,10 +73,12 @@ def get_doctor_addresses(request):
     
 @api_view(["POST"])
 @csrf_exempt
-@permission_classes([IsAuthenticated])
+# @permission_classes([IsAuthenticated])
 def update_doctor_profile(request):
     data=request.data
-    doctor=DoctorProfile.objects.get(user=request.user)
+    user=CustomUser.objects.get(id=int(data["id"]))
+    del data["id"]
+    doctor=DoctorProfile.objects.get(user=user)
     for key,value in data.items():
         setattr(doctor,key,value)
     doctor.save()
@@ -76,7 +93,7 @@ def update_multi_media_data(request):
         multi_media_name=request.POST["mm_type"]
         doctor=DoctorProfile.objects.get(user=request.user)
         file=request.FILES["file"]
-        if multi_media_name=="addhar":
+        if multi_media_name=="aadhaar":
             doctor.adhaar_card=file
         elif multi_media_name=="reg_card":
             doctor.registeration_card_image=file
@@ -85,9 +102,9 @@ def update_multi_media_data(request):
         elif multi_media_name=="profile_pic":
             doctor.profile_pic=file
         doctor.save()
-
-        return JsonResponse({"mssg":"Update Successfull...."},status=201)
-    except:
+        data=DoctorProfileSerializer(doctor).data
+        return JsonResponse({"mssg":"Update Successfull....","data":data},status=201)
+    except Exception as e:
         return JsonResponse({"mssg":"Update Unsucessfull...."},status=400)
     
 

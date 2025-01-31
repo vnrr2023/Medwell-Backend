@@ -25,6 +25,7 @@ mappings={
         
     }
 }
+
 ######################################
 
 def execute_elastic_query(query):

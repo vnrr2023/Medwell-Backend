@@ -32,6 +32,7 @@ from patient.utils import create_qr_for_profile
 @csrf_exempt
 def login_with_google( request):
     token=request.POST["token"]
+    print(token)
     role=request.POST["role"]
     if not token:
         return Response({"error": "Token not provided","status":False}, status=status.HTTP_400_BAD_REQUEST)
@@ -98,12 +99,14 @@ def login_with_google( request):
         return Response(
             {
             "access": str(refresh.access_token),
-            "status":True
+            "status":True,
+            "id":user.id
             }, 
         status=status.HTTP_200_OK
         )
 
     except ValueError as e:
+        print(e)
         return Response({"error": "Invalid token","status":False}, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -193,7 +196,8 @@ def register_user(request):
                 {
                     'mssg':"Profile created Successfully...",
                     'status':True,
-                    'access_token':str(access)
+                    'access_token':str(access),
+                    "id":new_user.id
                 },
                 status=201
             )
