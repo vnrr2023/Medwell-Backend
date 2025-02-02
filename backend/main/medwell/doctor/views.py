@@ -64,9 +64,7 @@ def get_doctor_info(request):
 @permission_classes([IsAuthenticated])
 def get_doctor_addresses(request):
     addresses=DoctorAddress.objects.filter(doctor=request.user)
-    print(addresses)
     data=DoctorAddressSerializer(addresses,many=True).data
-    print(data)
     return JsonResponse({"addresses":data,"count":len(data)},status=200)
     
 
