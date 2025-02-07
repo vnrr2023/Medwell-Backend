@@ -9,7 +9,7 @@ Ensure the output is a simple JSON object with no additional text or nested stru
 give me the json with no preamble and the value of status key will be in double quotes cumpolsurily.
 '''
 
-prompts={
+PROMPTS={
     "type_prompt":'''
 you are a medical report classifier.
 you will be given a medical report in text and you have to classify it in blood_report or other.
@@ -19,7 +19,7 @@ Give me the result in Json format with key as "type" with no preamble and no nes
     'blood_prompt':'''
 you are a medical report parser.
 Give me the output in json format strictly with no preamble.
-If you dont get any value assign it None
+If you dont get any value assign it "null"."null" should be a string dont forget.
 Extract the following fields
     name of the doctor with key as "doctor_name"
     date of report with key as "date_of_report" with dd/mm/yy format with no leading zeroes
@@ -55,16 +55,22 @@ Extract the following fields
 Summarize the medical report, focusing on any values that are abnormal or outside the normal range with key "summary"
 Strictly give me in proper json format with no nested json and  with no preamble.
 ''' ,
+
+
+
     "other_prompt":'''
 you are a medical report summarizer and entity extractor.
-If you dont get any value assign it None
+If you dont get any value assign it "null"."null" should be a string
 Give me the following details in json format
     name of the doctor with key as "doctor_name"
     date of report with key as "date_of_report" with dd/mm/yy format with no leading zeroes
-    date of collection with key as "date_of_collections" with dd/mm/yy format with no leading zeroes
+    date of collection with key as "date_of_collection" with dd/mm/yy format with no leading zeroes
     summary the report with key as "summary".
 Only give me json with no preamble.
 ''',
+
+
+
 "health_summary_prompt":'''
   You will receive a user's complete medical history, including:
 

@@ -1,243 +1,101 @@
 from celery import Celery
 from celery.result import AsyncResult
-import psycopg2
-import uuid,json,urllib3,pdfplumber,io,requests
+import uuid,json,urllib3,pdfplumber,io
 from ai import get_model_response
-from prompt_templates import prompts,data_template
-import pandas as pd
-from sqlalchemy import create_engine,text as to_sql_text
+from prompt_templates import PROMPTS,data_template
+from utils import getData,saveDataToMongoDb,saveHealthData
+from celery import states
+from celery.exceptions import Ignore
+from copy import deepcopy
+from db import executeQuery
+from secret import Secret
 
 
-db_username = 'myuser'
-db_password = 'root'
-db_host = 'localhost'
-db_port = '5432'
-db_name = 'medwell_db'
-
-connection_string = f'postgresql+psycopg2://{db_username}:{db_password}@{db_host}:{db_port}/{db_name}'
-engine = create_engine(connection_string)
-conn=engine.connect()
-
-from langchain_core.output_parsers import JsonOutputParser
-parser=JsonOutputParser()
 
 class Config:
-    CELERY_BROKER_URL:str="redis://127.0.0.1:6379/0"
-    CELERY_RESULT_BACKEND:str="redis://127.0.0.1:6379/0"
-
+    REDIS_URL :str= Secret.REDIS_URI
+    CELERY_BROKER_URL:str=REDIS_URL
+    CELERY_RESULT_BACKEND:str=REDIS_URL
 
 settings=Config()
 celery_app=Celery(__name__,broker=settings.CELERY_BROKER_URL,backend=settings.CELERY_RESULT_BACKEND)
 
 
-
-
-def connect_db():
-
-    connection = psycopg2.connect(
-        host='localhost',
-        port='5432',
-        dbname='medwell_db' ,
-        user='myuser' ,
-        password='root' 
-    )
-    return connection,connection.cursor()
-
-
-def send_status_to_mail(user_id,file,status):
-    resp=requests.post("http://127.0.0.1:8000/patient/send_status_of_task_to_mail/",json={"user_id":user_id,"pdf_file":file.split("/")[-1],"status":status})
+# def send_status_to_mail(user_id,file,status):
+#     resp=requests.post("http://127.0.0.1:8000/patient/send_status_of_task_to_mail/",json={"user_id":user_id,"pdf_file":file.split("/")[-1],"status":status})
     
-def save_data_to_vdb(user_id,report_id):
-    connection,cursor=connect_db()
-    cursor.execute("select email from authentication_customuser where id=%s",(user_id,))
-    email=cursor.fetchone()[0]
-    for _ in range(3):
-        try:
-            resp=requests.post("http://127.0.0.1:6000/add_user_data/",json={"user_id":user_id,"report_id":report_id,"email":email})
-            if resp.status_code==201:
-                print("saved to vector db")
-                break
-            else:
-                print("error saving")
-        except:
-            pass
-
-def generate_report_text(report_data):
-    report_text = ""
-    for test, details in report_data.items():
-        min_val = details['min']
-        max_val = details['max']
-        unit = details['unit']
-        value = details['value']
-        if value==-1:continue
-        
-        value_text = f"{value} {unit}" if value != -1 else "Not available"
-        
-        report_text += f"{test.capitalize()}: Normal range {min_val}-{max_val} {unit}, Current value: {value_text}\n"
-    
-    return report_text
-
-
-def save_health_and_diet_data(user_id):
-    print('came to health summary')
-    df=pd.read_sql_query(sql=to_sql_text('''
-    select date_of_report,report_type,report_data from patient_report r join patient_reportdetail d on r.id=d.report_id 
-    where user_id={user_id}
-    order by r.submitted_at desc
-    limit 5;
-    '''.format(user_id=user_id)),con=conn)
-    df["report_data"]=df.report_data.apply(generate_report_text)
-    entire_data_text=""
-    for index,data in df.iterrows():
-        text=f'''
-        report date:{data.date_of_report} report type : {data.report_type}
-        report data :
-        {data.report_data}
-        \n
-        '''
-        entire_data_text+=text
-    for _ in range(5):
-        try:
-            resp=get_model_response(prompts["health_summary_prompt"],entire_data_text)
-            resp=parser.parse(resp)
-            break
-        except Exception as e:
-            print(e)
-            pass
-    health_query='''
-    update patient_patientprofile
-    set health_summary=%s,diet_plan=%s
-    where user_id=%s;
-    '''
-    health_values=(resp["summary"],resp["plans"],user_id)
-    connection,cursor=connect_db()
-    cursor.execute(health_query,health_values)
-    connection.commit()
-    connection.close()
-    cursor.close()
 
 
 @celery_app.task
-def process_pdf(file,report_id,user_id):
+def process_pdf(file, report_id, user_id):
     try:
         http = urllib3.PoolManager()
         temp = io.BytesIO()
         temp.write(http.request("GET", file).data)
+        temp.seek(0)
+        
         text = ''
         pdf=pdfplumber.open(temp)
         for pdf_page in pdf.pages[:2]:
             text += pdf_page.extract_text()+"\n"
 
-        print("read pdf")
-
-        type_of_report=eval(get_model_response(prompts['type_prompt'],text=text))['type']
+        type_of_report=eval(get_model_response(PROMPTS['type_prompt'],text=text))['type']
         for page in pdf.pages[2:7]:
             text+=page.extract_text()+"\n"
-        print(f"got report type=={type_of_report}\n")
+
+        data_template_copy={}
+
         if type_of_report=="other":
-            for i in range(5):
-                try:
-                    data=eval(
-                        get_model_response(prompts['other_prompt'],text)
-                    )
-                    break
-                except:
-                    print("error")
-                    if i==4:
-                        send_status_to_mail(user_id,file,"FAILED")
-                        return
-                    else:pass
-                    
-            report_query='''
-            update patient_report
-            set doctor_name= %s,date_of_report=%s,date_of_collection=%s,
-            report_type=%s,summary=%s,processed=%s
-            where id=%s;
-            '''
-            report_values = (data['doctor_name'], data["date_of_report"], data['date_of_collection'],type_of_report,data['summary'],True,report_id)  
-            connection,cursor=connect_db()
-            cursor.execute(report_query,report_values)
-            connection.commit()
-            connection.close()
-            cursor.close()
-            print("stored to db")
-            send_status_to_mail(user_id,file,"SUCCESS")
+
+            data=getData(PROMPTS['other_prompt'],text)
+            if not data:
+                # self.update_state(state=states.FAILURE, meta={"reason": "Model response failed"})
+                raise Exception()
+
+            report_query = "SELECT update_patient_report(%s, %s, %s, %s, %s, %s, %s);"
+            report_values = (report_id,data['doctor_name'],data["date_of_report"],data['date_of_collection'],type_of_report,data['summary'],True) 
+            executeQuery(report_query,report_values)
             
         else:
-            for i in range(5):
-                try:
-                    data=eval(
-                        get_model_response(prompts['blood_prompt'],text)
-                    )
-                    break
-                except:
-                    print("error")
-                    if i==4:
-                        send_status_to_mail(user_id,file,"FAILED")
-                        return
-                    else:pass
-                    
+            data=getData(PROMPTS['blood_prompt'],text)
+
+            if not data:
+                # self.update_state(state=states.FAILURE, meta={"reason": "Model response failed"})
+                raise Exception()
+            
             sett={"doctor_name","date_of_report","date_of_collection","summary"}
+            data_template_copy=deepcopy(data_template)
             for i in data:
-                if i not in sett:
-                    data_template[i]['value']=data[i] if data[i] else -1
-            report_query='''
-            update patient_report
-            set doctor_name= %s,date_of_report=%s,date_of_collection=%s,
-            report_type=%s,summary=%s,processed=%s
-            where id=%s;
-            '''
-            report_values = (data['doctor_name'], data["date_of_report"], data['date_of_collection'],type_of_report,data['summary'],True,report_id)  
-            connection,cursor=connect_db()
-            cursor.execute(report_query,report_values)
-            connection.commit()
-            report_detail_query='''
-            insert into patient_reportdetail
-                ( id,
-                report_id,
-                hemoglobin,
-                rbc_count,
-                wbc_count,
-                platelet_count,
-                pcv,
-                bilirubin,
-                proteins,
-                calcium,
-                blood_urea,
-                sr_cholestrol,
-                report_data
-                )
-            VALUES
-            (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s);
-            '''
-            report_detail_values=(
+                if i not in sett:data_template_copy[i]['value']=data[i] if data[i]!="null" else -1  
+
+            report_query = "SELECT update_patient_report(%s, %s, %s, %s, %s, %s, %s);"
+            report_values = (report_id,data['doctor_name'],data["date_of_report"] if data["date_of_report"]!="null" else None ,data['date_of_collection'] if data["date_of_collection"]!="null" else None,type_of_report,data['summary'],True) 
+            executeQuery(report_query,report_values)
+            report_detail_query = "SELECT insert_patient_report_detail(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
+            report_detail_values = (
                 str(uuid.uuid4()),
                 report_id,
-                str(data['hemoglobin']) if data['hemoglobin'] is not None else str(-1),
-                str(data['rbc_count']) if data['rbc_count'] is not None else str(-1),
-                str(data['wbc_count']) if data['wbc_count'] is not None else str(-1),
-                str(data['platelet_count']) if data['platelet_count'] is not None else str(-1),
-                str(data['pcv']) if data['pcv'] is not None else str(-1),
-                str(data['bilirubin_total']) if data['bilirubin_total'] is not None else str(-1),
-                str(data['proteins']) if data['proteins'] is not None else str(-1),
-                str(data['calcium']) if data['calcium'] is not None else str(-1),
-                str(data['blood_urea']) if data['blood_urea'] is not None else str(-1),
-                str(data['sr_cholesterol']) if data['sr_cholesterol'] is not None else str(-1),
-                json.dumps(data_template)
+                str(data['hemoglobin']) if data['hemoglobin'] != "null" else "-1",
+                str(data['rbc_count']) if data['rbc_count'] != "null" else "-1",
+                str(data['wbc_count']) if data['wbc_count'] != "null" else "-1",
+                str(data['platelet_count']) if data['platelet_count'] != "null" else "-1",
+                str(data['pcv']) if data['pcv'] != "null" else "-1",
+                str(data['bilirubin_total']) if data['bilirubin_total'] != "null" else "-1",
+                str(data['proteins']) if data['proteins'] != "null" else "-1",
+                str(data['calcium']) if data['calcium'] != "null" else "-1",
+                str(data['blood_urea']) if data['blood_urea'] != "null" else "-1",
+                str(data['sr_cholesterol']) if data['sr_cholesterol'] != "null" else "-1",
+                json.dumps(data_template_copy)
                 )
-            connection,cursor=connect_db()
-            cursor.execute(report_detail_query,report_detail_values)
-            connection.commit()   
-            cursor.close()
-            connection.close()
+            executeQuery(report_detail_query,report_detail_values)
             print("stored to db")
-        send_status_to_mail(user_id,file,"SUCCESS")
-        save_health_and_diet_data(user_id)
-        print("done saving to db and creating diet plans")
-        save_data_to_vdb(user_id,report_id)
+        
+        saveDataToMongoDb(user_id,data_template_copy,data["date_of_report"],type_of_report,data['summary'])
+        saveHealthData(user_id)
+        # send_status_to_mail(user_id,file,"SUCCESS")
     except Exception as e:
         print(e)
-        send_status_to_mail(user_id,file,"FAILED")
+        # send_status_to_mail(user_id,file,"FAILED")
 
 
      
@@ -261,7 +119,7 @@ def get_task_status(task_id):
     elif task_result.state == 'FAILURE':
         response = {
             "state": task_result.state,
-            "status": str(task_result.info)  # Exception info
+            "status": str(task_result.info) 
         }
     else:
         response = {
