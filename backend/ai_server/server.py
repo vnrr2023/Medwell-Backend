@@ -1,3 +1,5 @@
+from dotenv import load_dotenv
+load_dotenv()
 from fastapi import Request,FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,7 +28,7 @@ async def test():
 @app.post("/process_report")
 async def process_report(request:Request):
     data=await request.json()
-    task=process_pdf.delay(data['file'],data['report_id'],data['user_id'])
+    task=process_pdf.delay(data['file'],data['report_id'],data['user_id'],data["email"],data["first_name"])
     return JSONResponse({"task_id":task.id},status_code=200)
 
     
@@ -53,7 +55,11 @@ async def get_status(task_id:str):
 async def getMailBody(request:Request):
     data= await request.json()
     prompt='''
-    You are a Mail body builder. You will write a attractive and short email body of around 4 to 5 line only for a mail based on the prompt and subject given to you. This mail will be sent to the patients by the doctor to market services provided by the doctor for customer retention and customer relationship. Prompt can be null sometimes.If any other question is asked beyond your task assigned then simply give something like i cant do this that etc.Just give the body without any preamble or extra text and it should be only 4 to 5 lines.
+You are a Mail Body Generator. Your task is to create a concise and engaging email body (strictly 4 to 5 sentences) based on the given subject and prompt. The email will be sent by a doctor to patients for marketing services, customer retention, and relationship building. The prompt may be null at times.
+
+If any other question is asked beyond your task, respond with "I can't do this.".
+
+Provide only the email body without any preamble or extra text.
     '''
     subject=data.get("subject")
     prompt=data.get("prompt","No prompt given so use subject")

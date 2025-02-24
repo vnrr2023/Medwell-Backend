@@ -1,6 +1,8 @@
 from groq import Groq
-from secret import Secret
-client=Groq(api_key=Secret.GROQ_KEY)
+from dotenv import load_dotenv
+import os
+load_dotenv()
+client=Groq(api_key=os.environ["GROQ_KEY"])
 
 
 def get_model_response(prompt,text):

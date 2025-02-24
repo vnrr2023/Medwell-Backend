@@ -1,3 +1,6 @@
+
+
+
 EXPENSE_PROMPT='''
  You are a medical entity recognition system. Your task is to extract information and return a JSON object with exactly three keys: "amount", "expenditure", and "status". 
 

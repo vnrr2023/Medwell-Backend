@@ -1,23 +1,25 @@
 import psycopg2
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
-from secret import Secret
-
-uri = f"mongodb+srv://{Secret.MONGO_USER}:{Secret.MONGO_PASSWORD}@cluster0.lxnui.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+import os
+from colorama import Fore
+Mongo_User=os.environ["MONGO_USER"]
+Mongo_Password=os.environ["MONGO_PASS"]
+uri = f"mongodb+srv://{Mongo_User}:{Mongo_Password}@cluster0.lxnui.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 client = MongoClient(uri, server_api=ServerApi('1'))
 try:
     client.admin.command('ping')
-    print("Pinged your deployment. You successfully connected to MongoDB!")
+    print(Fore.GREEN+"Pinged your deployment. You successfully connected to MongoDB!"+Fore.WHITE)
 except Exception as e:
     print(e)
     
 DB=client["user_report_data_db"]
 COLLECTION = DB["report_data"]
-host=Secret.HOST
+host=os.environ["DB_HOST"]
 port='5432'
-dbname=Secret.DB_NAME
-user=Secret.USER
-password=Secret.PASSWORD
+dbname=os.environ["DB_NAME"]
+user=os.environ["USER"]
+password=os.environ["PASSWORD"]
 
 def connect_db():
     connection = psycopg2.connect(

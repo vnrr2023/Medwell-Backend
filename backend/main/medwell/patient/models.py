@@ -2,6 +2,7 @@ from django.db import models
 from authentication.models import CustomUser
 import uuid
 from django.contrib.postgres.fields import ArrayField
+from django.core.files.storage import default_storage
 
 class PatientProfile(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -43,6 +44,11 @@ class Report(models.Model):
 
     def __str__(self) -> str:
         return self.user.email
+    
+    def delete(self, *args, **kwargs):
+        if self.report_file:
+            default_storage.delete(self.report_file.name)  # Deletes from S3
+        super().delete(*args, **kwargs)  # Deletes the model instance
 
 
 class ReportDetail(models.Model):

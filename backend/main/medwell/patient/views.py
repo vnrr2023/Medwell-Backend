@@ -39,19 +39,6 @@ def send_status_of_task_to_mail(request):
     return JsonResponse({'mssg':"mail sent"},status=200)
 
 
-@api_view(["POST"])
-@csrf_exempt
-@permission_classes([IsAuthenticated])
-def health_check(request):
-    user=request.user
-    resp = httpx.post(
-            f"{PATIENT_SERVER_URL}get_health_check/",
-            json={"user_id": user.id}
-        )
-    print(resp.json(),resp.status_code)
-    if resp.status_code==200 or resp.status_code==204:
-        return JsonResponse(data=resp.json(),status=resp.status_code)
-    return JsonResponse(data={},status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
 
 @api_view(["POST"])
@@ -104,19 +91,6 @@ def share_with_doctor(request):
         {"qr_code":path},status=200
     )
 
-@api_view(["POST"])
-@csrf_exempt
-@permission_classes([IsAuthenticated])   
-def patient_dashboard(request):
-    user=request.user
-    resp = httpx.post(
-            f"{PATIENT_SERVER_URL}get_dashboard_data/",
-            json={"user_id": user.id}
-        )
-    print(resp.json(),resp.status_code)
-    if resp.status_code==200:
-        return JsonResponse(data=resp.json(),status=resp.status_code)
-    return JsonResponse(data={},status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
 @api_view(["POST"])
 @csrf_exempt
@@ -125,7 +99,7 @@ def provide_access(request):
     try:
         enc_string=request.data["enc_data"]
         data=decrypt_json_string(enc_string)
-        doctor=CustomUser.objects.get(id=int(data["user_id"]))
+        doctor=CustomUser.objects.get(id=int(data))
         req_access=RequestAccess.objects.create(
             doctor=doctor,patient=request.user
             )

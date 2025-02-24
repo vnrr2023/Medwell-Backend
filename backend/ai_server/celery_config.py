@@ -4,16 +4,17 @@ import uuid,json,urllib3,pdfplumber,io
 from ai import get_model_response
 from prompt_templates import PROMPTS,data_template
 from utils import getData,saveDataToMongoDb,saveHealthData
-from celery import states
-from celery.exceptions import Ignore
+# from celery import states
+# from celery.exceptions import Ignore
 from copy import deepcopy
 from db import executeQuery
-from secret import Secret
+import os
+from mail_config import send_mail
 
 
 
 class Config:
-    REDIS_URL :str= Secret.REDIS_URI
+    REDIS_URL :str= os.environ["REDIS_URI"]
     CELERY_BROKER_URL:str=REDIS_URL
     CELERY_RESULT_BACKEND:str=REDIS_URL
 
@@ -27,7 +28,7 @@ celery_app=Celery(__name__,broker=settings.CELERY_BROKER_URL,backend=settings.CE
 
 
 @celery_app.task
-def process_pdf(file, report_id, user_id):
+def process_pdf(file, report_id, user_id,email,first_name):
     try:
         http = urllib3.PoolManager()
         temp = io.BytesIO()
@@ -92,10 +93,10 @@ def process_pdf(file, report_id, user_id):
         
         saveDataToMongoDb(user_id,data_template_copy,data["date_of_report"],type_of_report,data['summary'])
         saveHealthData(user_id)
-        # send_status_to_mail(user_id,file,"SUCCESS")
+        send_mail(first_name,email,file.split("/")[-1],status="Success")
     except Exception as e:
         print(e)
-        # send_status_to_mail(user_id,file,"FAILED")
+        send_mail(first_name,email,file.split("/")[-1],status="Failed")
 
 
      

@@ -8,7 +8,6 @@ from .models import *
 from .serializers import GetReportsSerializer
 
 AI_SERVER_URL="http://localhost:8888/"
-SELF_URL="http://localhost:8000/"
 CHATBOT_URL="http://localhost:6000/"
 
 @api_view(["POST"])
@@ -20,26 +19,26 @@ def send_report(request):
     user=request.user
     report=Report.objects.create(user=user,report_file=pdf_file)
     report.save()
-    data={'file':SELF_URL+report.report_file.url,"user_id":str(user.id),"report_id":str(report.id)}
-    resp=requests.post(AI_SERVER_URL+"process_report/",json=data)
+    data={'file':report.report_file.url,"user_id":str(user.id),"report_id":str(report.id),"email":user.email,"name":user.first_name}
+    resp=requests.post(AI_SERVER_URL+"process_report",json=data)
     task_id=resp.json()['task_id']
     return JsonResponse(
         {
-            'task_id':task_id
+            'task_id':"task_id"
         },status=200
     )
 
 
 
-@api_view(["GET"])
-@csrf_exempt
-def get_report_task_status(request):
-    task_id=request.GET["task_id"]
-    resp=requests.get(AI_SERVER_URL+f"get_task_status/?task_id={task_id}").json()
-    print(resp)
-    return JsonResponse(data={
-        "status":resp["state"]
-    },safe=False)
+# @api_view(["GET"])
+# @csrf_exempt
+# def get_report_task_status(request):
+#     task_id=request.GET["task_id"]
+#     resp=requests.get(AI_SERVER_URL+f"get_task_status/{task_id}").json()
+#     print(resp)
+#     return JsonResponse(data={
+#         "status":resp["state"]
+#     },safe=False)
 
 @api_view(["POST"])
 @csrf_exempt
@@ -60,7 +59,7 @@ def get_reports(request):
 @permission_classes([IsAuthenticated])
 def create_agent(request):
     user=request.user
-    resp=requests.post(CHATBOT_URL+"create_agent/",json={"user_id":user.id,"email":user.email})
+    resp=requests.post(CHATBOT_URL+"create_agent",json={"user_id":user.id,"email":user.email})
     return JsonResponse(resp.json(),status=resp.status_code)
 
 
@@ -68,5 +67,5 @@ def create_agent(request):
 @csrf_exempt
 def chat_with_reports(request):
     data=request.data
-    resp=requests.post(CHATBOT_URL+"chat/",json={"key":data["key"],"question":data["question"]})
+    resp=requests.post(CHATBOT_URL+"chat",json={"key":data["key"],"question":data["question"]})
     return JsonResponse(resp.json(),status=resp.status_code)

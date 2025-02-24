@@ -8,9 +8,6 @@ env=environ.Env()
 env_file_path=os.path.join(BASE_DIR, '.env')
 environ.Env.read_env(env_file_path)
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
-
 
 SECRET_KEY = env("SECRET_KEY")
 DEBUG = True
@@ -29,6 +26,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework_simplejwt',
     'doctor',
+    "storages"
     
 ]
 
@@ -63,26 +61,20 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'medwell.wsgi.application'
+X_FRAME_OPTIONS = 'ALLOWALL' 
 
-X_FRAME_OPTIONS = 'ALLOWALL'  # This allows framing by your own site only
-# Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env("DB_NAME"),           # Database name
-        'USER': env("USER"),               # Database user
-        'PASSWORD': env("PASSWORD"),       # User's password
-        'HOST': 'localhost',            # Set to 'localhost' if the database is on the same machine
-        'PORT': '5432',                 # Default PostgreSQL port
+        'NAME': env("DB_NAME"),         
+        'USER': env("USER"),             
+        'PASSWORD': env("PASSWORD"),     
+        'HOST': env("DB_HOST"),          
+        'PORT': env("DB_PORT"),                 
     }
 }
 
-
-
-# Password validation
-# https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -110,9 +102,6 @@ CORS_ALLOW_HEADERS = (
     "ngrok-skip-browser-warning" 
 )
 
-# Internationalization
-# https://docs.djangoproject.com/en/4.2/topics/i18n/
-
 LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'Asia/Kolkata'
@@ -123,15 +112,12 @@ USE_L10N = True
 
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.2/howto/static-files/
+
 
 STATIC_URL = 'static/'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'  
-# Default primary key field type
-# https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -166,3 +152,24 @@ EMAIL_HOST_USER=env('EMAIL')
 EMAIL_HOST_PASSWORD=env('EMAIL_PASSWORD')
 EMAIL_USE_TLS=True
 
+REDIS_HOST=env("REDIS_HOST")
+REDIS_PORT=int(env("REDIS_PORT"))
+REDIS_PASS=env("REDIS_PASS")
+
+AWS_ACCESS_KEY_ID=env("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY=env("AWS_SECRET_ACCESS_KEY")
+AWS_STORAGE_BUCKET_NAME=env("AWS_STORAGE_BUCKET_NAME")
+AWS_S3_CUSTOM_DOMAIN="%s.s3.amazonaws.com"% AWS_STORAGE_BUCKET_NAME
+AWS_S3_FILE_OVERWRITE=False
+
+STORAGES = {
+ 
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3StaticStorage",
+    },
+    
+
+    "staticfiles": {
+        "BACKEND": "storages.backends.s3boto3.S3StaticStorage",
+    },
+}
