@@ -16,15 +16,28 @@ except Exception as e:
 DB=client["user_report_data_db"]
 COLLECTION = DB["report_data"]
 host=os.environ["DB_HOST"]
-port='5432'
+port='6543'
 dbname=os.environ["DB_NAME"]
 user=os.environ["USER"]
 password=os.environ["PASSWORD"]
 
+try:
+    conn = psycopg2.connect(
+        host=host,
+        port=port,
+        dbname=dbname,
+        user=user,
+        password=password
+    )
+    print("✅ Connection successful!")
+    conn.close()
+except Exception as e:
+    print(f"❌ Connection failed: {e}")
+
 def connect_db():
     connection = psycopg2.connect(
         host=host,
-        port='5432',
+        port=port,
         dbname=dbname,
         user=user,
         password=password

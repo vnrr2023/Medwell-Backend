@@ -1,3 +1,4 @@
+from celery import Celery
 from django.apps import AppConfig
 import redis
 from django.conf import settings
@@ -13,3 +14,6 @@ class PatientConfig(AppConfig):
         print(Fore.GREEN+"Redis is running"+Fore.WHITE)
     else:
         print(Fore.RED+"Redis failed to connect"+Fore.WHITE)
+    
+    REDIS_CLOUD_URL = settings.REDIS_URI
+    celery_app = Celery("tasks", broker=REDIS_CLOUD_URL, backend=REDIS_CLOUD_URL)

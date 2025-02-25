@@ -1,34 +1,29 @@
+from dotenv import load_dotenv
+import os
+load_dotenv()
 from celery import Celery
 from celery.result import AsyncResult
 import uuid,json,urllib3,pdfplumber,io
 from ai import get_model_response
 from prompt_templates import PROMPTS,data_template
 from utils import getData,saveDataToMongoDb,saveHealthData
-# from celery import states
-# from celery.exceptions import Ignore
 from copy import deepcopy
 from db import executeQuery
 import os
 from mail_config import send_mail
 
+REDIS_CLOUD_URL = os.environ["REDIS_URI"]
+
+celery_app = Celery("tasks", broker=REDIS_CLOUD_URL, backend=REDIS_CLOUD_URL)
+
+celery_app.conf.update(
+    task_acks_late=True,  # Ensure tasks are acknowledged only after execution
+    worker_prefetch_multiplier=1,  # Distribute tasks evenly among workers
+)
 
 
-class Config:
-    REDIS_URL :str= os.environ["REDIS_URI"]
-    CELERY_BROKER_URL:str=REDIS_URL
-    CELERY_RESULT_BACKEND:str=REDIS_URL
-
-settings=Config()
-celery_app=Celery(__name__,broker=settings.CELERY_BROKER_URL,backend=settings.CELERY_RESULT_BACKEND)
-
-
-# def send_status_to_mail(user_id,file,status):
-#     resp=requests.post("http://127.0.0.1:8000/patient/send_status_of_task_to_mail/",json={"user_id":user_id,"pdf_file":file.split("/")[-1],"status":status})
-    
-
-
-@celery_app.task
-def process_pdf(file, report_id, user_id,email,first_name):
+@celery_app.task(bind=True)
+def process_pdf(self,file, report_id, user_id,email,first_name):
     try:
         http = urllib3.PoolManager()
         temp = io.BytesIO()
@@ -96,35 +91,6 @@ def process_pdf(file, report_id, user_id,email,first_name):
         send_mail(first_name,email,file.split("/")[-1],status="Success")
     except Exception as e:
         print(e)
+        self.update_state(state="FAILURE", meta={"error": str(e)})
         send_mail(first_name,email,file.split("/")[-1],status="Failed")
 
-
-     
-def get_task_status(task_id):
-    task_result = AsyncResult(task_id, app=celery_app)
-    if task_result.state == 'PENDING':
-        response = {
-            "state": task_result.state,
-            "status": "Pending..."
-        }
-    elif task_result.state == 'STARTED':
-        response = {
-            "state": task_result.state,
-            "status": "In progress..."
-        }
-    elif task_result.state == 'SUCCESS':
-        response = {
-            "state": task_result.state,
-            "result": task_result.result
-        }
-    elif task_result.state == 'FAILURE':
-        response = {
-            "state": task_result.state,
-            "status": str(task_result.info) 
-        }
-    else:
-        response = {
-            "state": task_result.state,
-            "status": "Unknown state"
-        }
-    return response

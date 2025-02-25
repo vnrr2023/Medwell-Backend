@@ -6,6 +6,8 @@ from rest_framework import status
 import requests
 from .models import *
 from .serializers import GetReportsSerializer
+from .apps import PatientConfig
+from celery.result import AsyncResult
 
 AI_SERVER_URL="http://localhost:8888/"
 CHATBOT_URL="http://localhost:6000/"
@@ -16,29 +18,43 @@ CHATBOT_URL="http://localhost:6000/"
 def send_report(request):
     print(request.FILES)
     pdf_file=request.FILES['report']
-    user=request.user
+    user:CustomUser=request.user
     report=Report.objects.create(user=user,report_file=pdf_file)
     report.save()
-    data={'file':report.report_file.url,"user_id":str(user.id),"report_id":str(report.id),"email":user.email,"name":user.first_name}
-    resp=requests.post(AI_SERVER_URL+"process_report",json=data)
-    task_id=resp.json()['task_id']
-    return JsonResponse(
-        {
-            'task_id':"task_id"
-        },status=200
-    )
+    task = PatientConfig.celery_app.send_task("tasks.process_pdf", args=[report.report_file.url,str(report.id),str(user.id),user.email,user.first_name])
+    return JsonResponse({'task_id':task.id},status=200)
 
 
 
-# @api_view(["GET"])
-# @csrf_exempt
-# def get_report_task_status(request):
-#     task_id=request.GET["task_id"]
-#     resp=requests.get(AI_SERVER_URL+f"get_task_status/{task_id}").json()
-#     print(resp)
-#     return JsonResponse(data={
-#         "status":resp["state"]
-#     },safe=False)
+@api_view(["GET"])
+def get_task_status(request,task_id):
+    task_result = AsyncResult(task_id, app=PatientConfig.celery_app)
+    if task_result.state == 'PENDING':
+        response = {
+            "state": task_result.state,
+            "status": "Pending..."
+        }
+    elif task_result.state == 'STARTED':
+        response = {
+            "state": task_result.state,
+            "status": "In progress..."
+        }
+    elif task_result.state == 'SUCCESS':
+        response = {
+            "state": task_result.state,
+            "result": task_result.result
+        }
+    elif task_result.state == 'FAILURE':
+        response = {
+            "state": task_result.state,
+            "status": str(task_result.info) 
+        }
+    else:
+        response = {
+            "state": task_result.state,
+            "status": "Unknown state"
+        }
+    return JsonResponse(response,status=200)
 
 @api_view(["POST"])
 @csrf_exempt
