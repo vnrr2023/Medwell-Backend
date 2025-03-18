@@ -2,15 +2,19 @@ import psycopg2,json,os
 import pandas as pd
 from sqlalchemy import create_engine,text as to_sql_text
 from utils import getData,setData
-
+from sqlalchemy.pool import NullPool
+from urllib.parse import quote
 
 DB_NAME=os.environ["DB_NAME"]
-USER=os.environ["USER"]
-PASSWORD=os.environ["PASSWORD"]
+DB_USER=os.environ["DB_USER"]
+PASSWORD=os.environ["DB_PASSWORD"]
 DB_HOST=os.environ["DB_HOST"]
+DB_PORT=os.environ["DB_PORT"]
 
-connection_string = f'postgresql+psycopg2://{USER}:{PASSWORD}@{DB_HOST}:5432/{DB_NAME}'
-engine = create_engine(connection_string)
+
+encoded_password = quote(PASSWORD)
+print(encoded_password)
+engine = create_engine(f"postgresql+psycopg2://{DB_USER}:{encoded_password}@{DB_HOST}:6543/{DB_NAME}")
 conn=engine.connect()
 
 queries=json.load(open("queries.json"))

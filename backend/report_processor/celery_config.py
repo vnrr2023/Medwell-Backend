@@ -10,7 +10,7 @@ from utils import getData,saveDataToMongoDb,saveHealthData
 from copy import deepcopy
 from db import executeQuery
 import os
-from mail_config import send_mail
+from messaging import sendStatusMessage
 
 REDIS_CLOUD_URL = os.environ["REDIS_URI"]
 
@@ -88,9 +88,9 @@ def process_pdf(self,file, report_id, user_id,email,first_name):
         
         saveDataToMongoDb(user_id,data_template_copy,data["date_of_report"],type_of_report,data['summary'])
         saveHealthData(user_id)
-        send_mail(first_name,email,file.split("/")[-1],status="Success")
+        sendStatusMessage("7506375933",file.split("/")[-1],status=True,first_name=first_name)
     except Exception as e:
         print(e)
         self.update_state(state="FAILURE", meta={"error": str(e)})
-        send_mail(first_name,email,file.split("/")[-1],status="Failed")
+        sendStatusMessage("7506375933",file.split("/")[-1],status=False,first_name=first_name,)
 

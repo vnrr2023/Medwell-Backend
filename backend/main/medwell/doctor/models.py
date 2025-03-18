@@ -1,8 +1,6 @@
 from django.db import models
 from authentication.models import CustomUser
-from patient.models import PatientProfile
 from uuid import uuid4
-from datetime import datetime
 
 
 class DoctorProfile(models.Model):
@@ -73,12 +71,12 @@ class AppointmentSlot(models.Model):
 
 class Appointment(models.Model):
     id=models.UUIDField(primary_key=True, default=uuid4, editable=False)
-    doctor = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="appointments")
-    patient = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="appointments_as_patient")
-    service = models.ForeignKey(DoctorServices, on_delete=models.CASCADE)
+    doctor = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="appointments",null=True,blank=True)
+    patient = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="appointments_as_patient",null=True,blank=True)
+    service = models.ForeignKey(DoctorServices, on_delete=models.CASCADE,null=True,blank=True)
     booked_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=100, null=True, blank=True)
-    appointment_slot = models.ForeignKey(AppointmentSlot, on_delete=models.CASCADE)
+    appointment_slot = models.ForeignKey(AppointmentSlot, on_delete=models.CASCADE,null=True,blank=True)
 
 
     class Meta:
@@ -105,13 +103,33 @@ class ServiceMarketting(models.Model):
     id = models.CharField(primary_key=True, max_length=50)
     doctor=models.ForeignKey(CustomUser,on_delete=models.CASCADE)
     html=models.TextField(null=True,blank=True)
+    customer_count=models.PositiveIntegerField(null=True,blank=True)
 
 
     def __str__(self):
         return self.doctor.first_name+" "+self.id        
 
 
+class Prescription(models.Model):
+    id=models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    other_info=models.TextField(null=True,blank=True)
+    prescription=models.JSONField(null=True,blank=True)
+    appointment=models.OneToOneField(Appointment,on_delete=models.CASCADE)
+    created_at=models.DateTimeField(null=True,blank=True)
+    def __str__(self):
+        return 
 
 
+class ShiftedAppointment(models.Model):
+    id=models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    appointment=models.OneToOneField(Appointment,on_delete=models.CASCADE)
+    doctor_message=models.TextField(null=True,blank=True)
+    patient_accepted=models.BooleanField(default=False)
+    patient_message=models.TextField(null=True,blank=True)
+    shifted_slot=models.OneToOneField(AppointmentSlot,on_delete=models.CASCADE)
+    event_at=models.DateTimeField(null=True,blank=True)
+
+    def __str__(self):
+        return 
 
 
