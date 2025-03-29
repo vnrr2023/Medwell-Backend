@@ -4,10 +4,9 @@ from fastapi import FastAPI, HTTPException,Request,Depends
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from colorama import Fore
 
-from db import provide_health_check_data,provide_expense_data,provide_expense_dashboard,dashboard_data
-from utils import validateToken
+from db import Patient,Doctor
+from utils import validateToken,printWithColor
 
 app=FastAPI()
 app.add_middleware(
@@ -30,9 +29,9 @@ def authenticateUser(request:Request):
     return user_id
 
 
-@app.get("/patient/get_health_check")
+@app.get("/patient/health-check")
 async def get_health_check(user_id: int = Depends(authenticateUser)):
-    health_check_data=provide_health_check_data(user_id)
+    health_check_data=Patient.provide_health_check_data(user_id)
     if health_check_data["status"]==False:
         return JSONResponse(
             {"count":str(health_check_data['count']),'status':False},status_code=200
@@ -46,19 +45,30 @@ async def get_health_check(user_id: int = Depends(authenticateUser)):
         },status_code=200
     )
 
-@app.get("/patient/get_expense_data")
+@app.get("/patient/expense")
 async def get_expense_data(user_id: int = Depends(authenticateUser)):
-    resp=provide_expense_data(user_id)
+    resp=Patient.provide_expense_data(user_id)
     return JSONResponse(resp,status_code=200)
 
-@app.get("/patient/expenses_dashboard")
+@app.get("/patient/expense-dashboard")
 async def get_expense_dashboard(user_id: int = Depends(authenticateUser)):
-    resp=provide_expense_dashboard(user_id)
+    resp=Patient.provide_expense_dashboard(user_id)
     return JSONResponse(resp)
 
-@app.get("/patient/get_dashboard_data")
+@app.get("/patient/dashboard")
 async def get_dashboard_data(user_id: int = Depends(authenticateUser)):
-    data=dashboard_data(user_id)
+    data=Patient.dashboard_data(user_id)
+    return JSONResponse(data,status_code=200)
+
+
+@app.get("/doctor/dashboard")
+async def get_doctor_dashboard():
+    data=Doctor.getDoctorDashboardData(1)
+    return JSONResponse(data,status_code=200)
+
+@app.get("/doctor/analytics")
+async def get_doctor_dashboard():
+    data=Doctor.getDoctorAnalytics(1)
     return JSONResponse(data,status_code=200)
 
 
@@ -68,5 +78,5 @@ async def test():
 
 
 if __name__=="__main__":
-    print(Fore.GREEN+"Server Running on Port = 5000"+Fore.WHITE)
-    uvicorn.run("server:app",host="localhost",port=5000,reload=True)
+    printWithColor("Server running on port 5000")
+    uvicorn.run("server:app",host="localhost",port=5000)
