@@ -1,7 +1,10 @@
 from elasticsearch import Elasticsearch
 from colorama import Fore
+import os
 
-client=Elasticsearch("http://127.0.0.1:9200")
+ELASTIC_SEARCH_NGROK_URL=os.getenv("ELASTIC_SEARCH_NGROK_URL")
+
+client=Elasticsearch(ELASTIC_SEARCH_NGROK_URL)
 if client.ping():
     print(Fore.GREEN+"Elastic Server is Up and Running")
 else:

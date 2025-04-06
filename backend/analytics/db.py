@@ -14,7 +14,7 @@ DB_PORT=os.environ["DB_PORT"]
 
 
 encoded_password = quote(PASSWORD)
-engine = create_engine(f"postgresql+psycopg2://{DB_USER}:{encoded_password}@{DB_HOST}:6543/{DB_NAME}")
+engine = create_engine(f"postgresql+psycopg2://{DB_USER}:{encoded_password}@{DB_HOST}:6543/{DB_NAME}",pool_size=10, max_overflow=5, pool_recycle=1800)
 conn=engine.connect()
 print(Fore.GREEN+"Connected to Db Successfully"+Fore.WHITE)
 
@@ -253,4 +253,15 @@ class Doctor:
         return data
 
 
-
+    # @staticmethod
+    # def getPatientsWithAccess(user_id):
+    #     df=pd.read_sql_query(
+    #         sql=to_sql_text(
+    #             f'''
+    #             select patient_id,concat(p.first_name,p.last_name) as name,requested_at::timestamp::text
+    #             from doctor_requestaccess d join authentication_customuser p
+    #             on p.id=d.patient_id
+    #             where doctor_id={user_id};
+    #             '''
+    #             ),con=conn)
+    #     return df.to_dict("records")

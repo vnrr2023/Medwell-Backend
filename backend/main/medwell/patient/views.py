@@ -98,12 +98,12 @@ def share_with_doctor(request):
 def provide_access(request):
     try:
         enc_string=request.data["enc_data"]
-        data=decrypt_json_string(enc_string)
-        doctor=CustomUser.objects.get(id=int(data))
+        data=int(decrypt_json_string(enc_string))
+        doctor=CustomUser.objects.get(id=data)
         req_access=RequestAccess.objects.create(
             doctor=doctor,patient=request.user
             )
-        request_access(data["user_id"],request.user.id)
+        request_access(data,request.user.id)
         return JsonResponse(data={"mssg":f"Request Granted to {doctor.first_name} Successfully..."},status=200)
     except Exception as e:
         print(e)

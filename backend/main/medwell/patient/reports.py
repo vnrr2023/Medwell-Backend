@@ -9,9 +9,6 @@ from .serializers import GetReportsSerializer
 from .apps import PatientConfig
 from celery.result import AsyncResult
 
-AI_SERVER_URL="http://localhost:8888/"
-CHATBOT_URL="http://localhost:6000/"
-
 @api_view(["POST"])
 @csrf_exempt
 @permission_classes([IsAuthenticated])
@@ -61,7 +58,7 @@ def get_task_status(request,task_id):
 @permission_classes([IsAuthenticated])
 def get_reports(request):
     user=request.user
-    reports=Report.objects.filter(user=user).order_by("-date_of_report")
+    reports=Report.objects.filter(user=user).order_by("-submitted_at")
     if reports:
         data=GetReportsSerializer(reports,many=True).data
         return JsonResponse(
@@ -70,18 +67,18 @@ def get_reports(request):
     return JsonResponse(data={"count":0},status=status.HTTP_204_NO_CONTENT)
 
 
-@api_view(["POST"])
-@csrf_exempt
-@permission_classes([IsAuthenticated])
-def create_agent(request):
-    user=request.user
-    resp=requests.post(CHATBOT_URL+"create_agent",json={"user_id":user.id,"email":user.email})
-    return JsonResponse(resp.json(),status=resp.status_code)
+# @api_view(["POST"])
+# @csrf_exempt
+# @permission_classes([IsAuthenticated])
+# def create_agent(request):
+#     user=request.user
+#     resp=requests.post(CHATBOT_URL+"create_agent",json={"user_id":user.id,"email":user.email})
+#     return JsonResponse(resp.json(),status=resp.status_code)
 
 
-@api_view(["POST"])
-@csrf_exempt
-def chat_with_reports(request):
-    data=request.data
-    resp=requests.post(CHATBOT_URL+"chat",json={"key":data["key"],"question":data["question"]})
-    return JsonResponse(resp.json(),status=resp.status_code)
+# @api_view(["POST"])
+# @csrf_exempt
+# def chat_with_reports(request):
+#     data=request.data
+#     resp=requests.post(CHATBOT_URL+"chat",json={"key":data["key"],"question":data["question"]})
+#     return JsonResponse(resp.json(),status=resp.status_code)

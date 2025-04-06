@@ -1,8 +1,12 @@
+from dotenv import load_dotenv
+load_dotenv()
 import psycopg2
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 import os
 from colorama import Fore
+from urllib.parse import quote
+
 Mongo_User=os.environ["MONGO_USER"]
 Mongo_Password=os.environ["MONGO_PASS"]
 uri = f"mongodb+srv://{Mongo_User}:{Mongo_Password}@cluster0.lxnui.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
@@ -15,19 +19,17 @@ except Exception as e:
     
 DB=client["user_report_data_db"]
 COLLECTION = DB["report_data"]
+
 host=os.environ["DB_HOST"]
-port='6543'
+port="6543"
 dbname=os.environ["DB_NAME"]
 user=os.environ["USER"]
-password=os.environ["PASSWORD"]
+
+connection_string = f"postgresql://postgres.ntfzmxgdxqjtijvxktra:{quote(os.environ['PASSWORD'])}@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?sslmode=require"
 
 try:
     conn = psycopg2.connect(
-        host=host,
-        port=port,
-        dbname=dbname,
-        user=user,
-        password=password
+    connection_string        
     )
     print("✅ Connection successful!")
     conn.close()
@@ -36,11 +38,7 @@ except Exception as e:
 
 def connect_db():
     connection = psycopg2.connect(
-        host=host,
-        port=port,
-        dbname=dbname,
-        user=user,
-        password=password
+        connection_string
     )
     return connection,connection.cursor()
 

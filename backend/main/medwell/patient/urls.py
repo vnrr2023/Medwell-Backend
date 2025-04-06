@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import (send_status_of_task_to_mail,save_patient_info,get_patient_info,update_profile_pic ,
 share_with_doctor,provide_access)
-from .reports import send_report,get_reports,create_agent,chat_with_reports,get_task_status
+from .reports import send_report,get_reports,get_task_status
 from .expenses import add_expense
 
 urlpatterns = [
@@ -20,6 +20,6 @@ urlpatterns = [
     path("share_with_doctor",share_with_doctor,name="share_with_doctor"),
     # path("dashboard/",patient_dashboard,name="dashboard"),
     path("provide_access",provide_access,name="provide_access"),
-    path("create_agent",create_agent,name="create_agent"),
-    path("chat",chat_with_reports,name="chat_with_reports"),
+    # path("create_agent",create_agent,name="create_agent"),
+    # path("chat",chat_with_reports,name="chat_with_reports"),
 ]

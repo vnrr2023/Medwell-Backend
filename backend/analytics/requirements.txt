@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+fastapi-cors
+python-dotenv
+colorama
+pandas==1.5.3
+psycopg2-binary==2.9.9
+SQLAlchemy==2.0.38
+redis==3.5.3
+PyJWT==2.9.0

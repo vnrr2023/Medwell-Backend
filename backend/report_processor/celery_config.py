@@ -22,7 +22,7 @@ celery_app.conf.update(
 )
 
 
-@celery_app.task(bind=True)
+@celery_app.task(name="tasks.process_pdf", bind=True)
 def process_pdf(self,file, report_id, user_id,email,first_name):
     try:
         http = urllib3.PoolManager()

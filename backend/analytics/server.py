@@ -30,7 +30,7 @@ def authenticateUser(request:Request):
 
 
 @app.get("/patient/health-check")
-async def get_health_check(user_id: int = Depends(authenticateUser)):
+async def getPatientHealthCheck(user_id: int = Depends(authenticateUser)):
     health_check_data=Patient.provide_health_check_data(user_id)
     if health_check_data["status"]==False:
         return JSONResponse(
@@ -46,30 +46,36 @@ async def get_health_check(user_id: int = Depends(authenticateUser)):
     )
 
 @app.get("/patient/expense")
-async def get_expense_data(user_id: int = Depends(authenticateUser)):
+async def getPatientExpense(user_id: int = Depends(authenticateUser)):
     resp=Patient.provide_expense_data(user_id)
     return JSONResponse(resp,status_code=200)
 
 @app.get("/patient/expense-dashboard")
-async def get_expense_dashboard(user_id: int = Depends(authenticateUser)):
+async def getPatientExpenseDashboard(user_id: int = Depends(authenticateUser)):
     resp=Patient.provide_expense_dashboard(user_id)
     return JSONResponse(resp)
 
 @app.get("/patient/dashboard")
-async def get_dashboard_data(user_id: int = Depends(authenticateUser)):
+async def getPatientDashboard(user_id: int = Depends(authenticateUser)):
     data=Patient.dashboard_data(user_id)
     return JSONResponse(data,status_code=200)
 
 
 @app.get("/doctor/dashboard")
-async def get_doctor_dashboard():
+async def getDoctorDashboard():
     data=Doctor.getDoctorDashboardData(1)
     return JSONResponse(data,status_code=200)
 
 @app.get("/doctor/analytics")
-async def get_doctor_dashboard():
+async def getDoctorAnalytics():
     data=Doctor.getDoctorAnalytics(1)
     return JSONResponse(data,status_code=200)
+
+# @app.get("/doctor/patient-access")
+# async def getPatients(user_id: int = Depends(authenticateUser)):
+#     data=Doctor.getPatientsWithAccess(user_id)
+#     return 
+    
 
 
 @app.get("/test")
@@ -79,4 +85,4 @@ async def test():
 
 if __name__=="__main__":
     printWithColor("Server running on port 5000")
-    uvicorn.run("server:app",host="localhost",port=5000)
+    uvicorn.run("server:app",host="127.0.0.1",port=5000)

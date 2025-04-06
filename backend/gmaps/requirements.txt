@@ -1,0 +1,5 @@
+fastapi
+uvicorn
+fastapi-cors
+python-dotenv
+googlemaps==4.10.0

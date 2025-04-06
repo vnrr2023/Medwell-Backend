@@ -21,7 +21,6 @@ PATIENT_SERVER_URL="http://localhost:5000/"
 def add_doctor_address(request):
     data=request.data
     user=request.user
-    # user=CustomUser.objects.get(id=int(data["id"]))
     address=data["address"]
     timings=data["timings"]
     geocoded_data=geocodeAddress(address)
@@ -37,23 +36,23 @@ def add_doctor_address(request):
         timings=timings
         )
     profile:DoctorProfile=user.doctorprofile
-#     resp=httpx.post(DOCTOR_SERVER+"add_address/",json={
-#     "doc_id": doctor_address.id,
-#     "document": {
-#         "user_id": user.id,
-#         "name": profile.name,
-#         "role": "doctor",
-#         "speciality": profile.speciality,
-#         "address": doctor_address.address,
-#         "phone_number": profile.phone_number,
-#         "location": {
-#             "lat": doctor_address.lat,
-#             "lon":doctor_address.lon
-#         }
-#     }
-# })
-    # return JsonResponse(resp.json(),status=resp.status_code)
-    return JsonResponse({"ok":"ok"},status=200)
+    resp=httpx.post(DOCTOR_SERVER+"add-address/",json={
+    "doc_id": doctor_address.id,
+    "document": {
+        "user_id": user.id,
+        "name": profile.name,
+        "role": "doctor",
+        "speciality": profile.speciality,
+        "address": doctor_address.address,
+        "phone_number": profile.phone_number,
+        "location": {
+            "lat": doctor_address.lat,
+            "lon":doctor_address.lon
+        }
+        }
+    })
+    return JsonResponse(resp.json(),status=resp.status_code)
+    # return JsonResponse({"ok":"ok"},status=200)
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])

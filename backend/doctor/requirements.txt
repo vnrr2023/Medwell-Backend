@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+fastapi-cors
+elasticsearch==8.16.0
+python-dotenv
+colorama

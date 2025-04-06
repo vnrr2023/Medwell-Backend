@@ -4,6 +4,8 @@ from rest_framework.decorators import api_view,permission_classes
 from django.http import JsonResponse
 from .models import Expense
 import httpx
+from .apps import PatientConfig
+
 PATIENT_SERVER_URL="http://127.0.0.1:5000/"
 AI_SERVER_URL="http://localhost:8888/"
 
@@ -15,6 +17,7 @@ def add_expense(request):
     data=request.data
     query_type=data["query_type"]
     if query_type=="normal":
+        PatientConfig.redis_client.delete(f"expense_data:{user.id}")
         exp=Expense.objects.create(user=user,expense_type=data["expense_type"],amount=data["amount"])
         exp.save()
         return JsonResponse({"message":"Expense Added Successfully..."},status=200)
