@@ -2,6 +2,7 @@
 from django.urls import path
 from .doctor_patient import refresh_patients,get_patient_reports,get_patient_health_check
 from .views import add_doctor_address,get_doctor_info,get_doctor_addresses,update_doctor_profile,update_multi_media_data
+
 urlpatterns = [
     path("refresh_patients",refresh_patients,name="refresh_patients"),
     path("get_patient_reports",get_patient_reports,name="get_patient_reports"),

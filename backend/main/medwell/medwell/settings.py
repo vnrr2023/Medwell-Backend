@@ -2,6 +2,7 @@
 from pathlib import Path
 import os
 import environ
+import requests
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 env=environ.Env()
@@ -176,3 +177,23 @@ STORAGES = {
         "BACKEND": "storages.backends.s3boto3.S3StaticStorage",
     },
 }
+
+service_urls = {
+    "GMAPS_SERVICE": "https://gmapsmedwell.vercel.app/",
+    "DOCTOR_SEARCH_SERVICE": "https://doctor-search-medwell.vercel.app/",
+    # "ANALYTICS_SERVICE": "",
+    "MESSAGING_SERVICE": "https://whatsapp-messaging-medwell-api.vercel.app/test"
+}
+
+# Check each URL
+for name, url in service_urls.items():
+    try:
+        resp = requests.get(url)
+        if resp.status_code == 200:
+            print(f"{name}: ✅ Service is up")
+        else:
+            print(f"{name}: ❌ Service is down")
+        print()
+    except Exception as e:
+        print(f"{name}: ❌ Error occurred - {e}")
+

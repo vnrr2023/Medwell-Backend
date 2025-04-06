@@ -1,5 +1,4 @@
-from authentication.models import CustomUser
-from django.db.transaction import atomic
+
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view,permission_classes
@@ -8,13 +7,11 @@ import httpx
 from rest_framework import status
 from patient.utils import check_access
 from patient.models import RequestAccess,Report
-from .models import DoctorProfile
 from .serializers import RequestAccessSerializer
 from patient.serializers import GetReportsSerializer
 # Create your views here.
 
-DOCTOR_SERVER="http://localhost:7000/"
-PATIENT_SERVER_URL="http://localhost:5000/"
+ANALYTICS_SERVICE=""
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -43,7 +40,7 @@ def get_patient_health_check(request):
     patient_id=request.data["patient_id"]
     if check_access(doctor_id=user.id,patient_id=patient_id):
         resp = httpx.post(
-            f"{PATIENT_SERVER_URL}get_health_check/",
+            f"{ANALYTICS_SERVICE}/doctor/patient-health-check/{patient_id}",
             json={"user_id": user.id}
         )
         print(resp.json(),resp.status_code)

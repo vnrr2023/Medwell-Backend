@@ -38,5 +38,14 @@ async def getEncodedPolyline(sourceLat:float,sourceLon:float,destinationLat:floa
     else:
         return JSONResponse({"polyline":"Not Dound"},status_code=400)
     
+@app.get("/geocode-address/{address}")
+async def getEncodedPolyline(address:str):
+    geocode_result = gmaps.geocode(address)
+    if geocode_result:
+        resp={"formatted_address":geocode_result[0]["formatted_address"],"location":geocode_result[0]["geometry"]["location"]}
+        return JSONResponse(resp,status_code=200)
+    else:
+        return JSONResponse({},status_code=400)
+    
 
 

@@ -1,5 +1,3 @@
-from authentication.models import CustomUser
-from django.db.transaction import atomic
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view,permission_classes
@@ -10,10 +8,7 @@ from .models import DoctorProfile,DoctorAddress
 from .serializers import DoctorProfileSerializer,DoctorAddressSerializer
 from .google_maps_utility import geocodeAddress
 
-DOCTOR_SERVER="http://localhost:7000/"
-PATIENT_SERVER_URL="http://localhost:5000/"
-
-
+DOCTOR_SERVER="https://doctor-search-medwell.vercel.app"
 
 @api_view(["POST"])
 @csrf_exempt
@@ -24,7 +19,7 @@ def add_doctor_address(request):
     address=data["address"]
     timings=data["timings"]
     geocoded_data=geocodeAddress(address)
-    if geocoded_data["status"]==False:
+    if geocoded_data==None:
         return JsonResponse({"mssg":"Address could not be added.Plz enter proper address"},status=status.HTTP_400_BAD_REQUEST)
     
     doctor_address=DoctorAddress.objects.create(
@@ -36,7 +31,7 @@ def add_doctor_address(request):
         timings=timings
         )
     profile:DoctorProfile=user.doctorprofile
-    resp=httpx.post(DOCTOR_SERVER+"add-address/",json={
+    resp=httpx.post(DOCTOR_SERVER+"/add-address",json={
     "doc_id": doctor_address.id,
     "document": {
         "user_id": user.id,
@@ -52,7 +47,6 @@ def add_doctor_address(request):
         }
     })
     return JsonResponse(resp.json(),status=resp.status_code)
-    # return JsonResponse({"ok":"ok"},status=200)
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -74,8 +68,6 @@ def get_doctor_addresses(request):
 @permission_classes([IsAuthenticated])
 def update_doctor_profile(request):
     data=request.data
-    # user=CustomUser.objects.get(id=int(data["id"]))
-    # del data["id"]
     user=request.user
     doctor=DoctorProfile.objects.get(user=user)
     for key,value in data.items():

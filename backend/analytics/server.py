@@ -71,10 +71,23 @@ async def getDoctorAnalytics():
     data=Doctor.getDoctorAnalytics(1)
     return JSONResponse(data,status_code=200)
 
-# @app.get("/doctor/patient-access")
-# async def getPatients(user_id: int = Depends(authenticateUser)):
-#     data=Doctor.getPatientsWithAccess(user_id)
-#     return 
+
+@app.get("/doctor/patient-health-check/{user_id}")
+async def getPatientHealthCheckForDoctor(user_id: int):
+    health_check_data=Patient.provide_health_check_data(user_id)
+    if health_check_data["status"]==False:
+        return JSONResponse(
+            {"count":str(health_check_data['count']),'status':False},status_code=200
+            )
+  
+    return JSONResponse(
+        {
+            'avg_data':health_check_data["avg_data"],
+            'data':health_check_data['data'],
+            'status':True
+        },status_code=200
+    )
+
     
 
 

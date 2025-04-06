@@ -1,24 +1,17 @@
 from authentication.models import CustomUser
-from django.db.transaction import atomic
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view,permission_classes
 from django.http import JsonResponse
-from rest_framework import status
 from .models import *
 from django.core.mail import send_mail
 from .services import create_html
-import httpx
 from .serializers import PatientSerializer
 import datetime
 from authentication.security import create_token,decrypt_json_string
 from .models import RequestAccess
 from .utils import create_qr,request_access
-
-AI_SERVER_URL="http://localhost:8888/"
-PATIENT_SERVER_URL="http://127.0.0.1:5000/"
-SELF_URL="http://localhost:8000/"
 
 @api_view(["POST"])
 @csrf_exempt
@@ -37,8 +30,6 @@ def send_status_of_task_to_mail(request):
         html_message=html_template
     )
     return JsonResponse({'mssg':"mail sent"},status=200)
-
-
 
 
 @api_view(["POST"])

@@ -3,7 +3,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view,permission_classes
 from django.http import JsonResponse
 from rest_framework import status
-import requests
 from .models import *
 from .serializers import GetReportsSerializer
 from .apps import PatientConfig
@@ -66,19 +65,3 @@ def get_reports(request):
         )
     return JsonResponse(data={"count":0},status=status.HTTP_204_NO_CONTENT)
 
-
-# @api_view(["POST"])
-# @csrf_exempt
-# @permission_classes([IsAuthenticated])
-# def create_agent(request):
-#     user=request.user
-#     resp=requests.post(CHATBOT_URL+"create_agent",json={"user_id":user.id,"email":user.email})
-#     return JsonResponse(resp.json(),status=resp.status_code)
-
-
-# @api_view(["POST"])
-# @csrf_exempt
-# def chat_with_reports(request):
-#     data=request.data
-#     resp=requests.post(CHATBOT_URL+"chat",json={"key":data["key"],"question":data["question"]})
-#     return JsonResponse(resp.json(),status=resp.status_code)
