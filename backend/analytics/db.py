@@ -14,6 +14,7 @@ DB_PORT=os.environ["DB_PORT"]
 
 
 encoded_password = quote(PASSWORD)
+print("encoded pass is ",encoded_password)
 engine = create_engine(f"postgresql+psycopg2://{DB_USER}:{encoded_password}@{DB_HOST}:6543/{DB_NAME}",pool_size=10, max_overflow=5, pool_recycle=1800)
 conn=engine.connect()
 print(Fore.GREEN+"Connected to Db Successfully"+Fore.WHITE)

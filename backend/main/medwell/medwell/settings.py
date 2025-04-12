@@ -1,6 +1,7 @@
 
 from pathlib import Path
 import os
+import dj_database_url
 import environ
 import requests
 
@@ -11,7 +12,7 @@ environ.Env.read_env(env_file_path)
 
 
 SECRET_KEY = env("SECRET_KEY")
-DEBUG = True
+DEBUG = False
 ALLOWED_HOSTS = ['*']
 
 INSTALLED_APPS = [
@@ -65,17 +66,23 @@ WSGI_APPLICATION = 'medwell.wsgi.application'
 X_FRAME_OPTIONS = 'ALLOWALL' 
 
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env("DB_NAME"),         
-        'USER': env("USER"),             
-        'PASSWORD': env("PASSWORD"),     
-        'HOST': env("DB_HOST"),          
-        'PORT': env("DB_PORT"),                 
-    }
-}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': env("DB_NAME"),         
+#         'USER': env("USER"),             
+#         'PASSWORD': env("PASSWORD"),     
+#         'HOST': env("DB_HOST"),          
+#         'PORT': env("DB_PORT"),                 
+#     }
+# }
 
+DATABASES = {
+    'default': dj_database_url.config(
+        default=env('DB_URL'),
+        conn_max_age=600
+    )
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {
